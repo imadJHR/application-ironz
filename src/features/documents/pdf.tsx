@@ -10,8 +10,6 @@ import type { PrintDocument } from "./document-data";
 import { statusLabels } from "@/lib/business";
 import { montantEnLettres } from "@/lib/lettres";
 import { money, shortDate } from "@/lib/utils";
-import path from "node:path";
-import { pathToFileURL } from "node:url";
 const styles = StyleSheet.create({
   page: {
     fontFamily: "Helvetica",
@@ -144,9 +142,11 @@ const titles = {
 export function CommercialPdf({
   doc,
   valued,
+  logo,
 }: {
   doc: PrintDocument;
   valued?: boolean;
+  logo?: string | null;
 }) {
   const c = doc.company,
     client = doc.client,
@@ -213,22 +213,21 @@ export function CommercialPdf({
     >
       <Page size="A4" style={styles.page} wrap>
         <View fixed wrap={false} style={{ height: 118 }} />
-        <PdfImage
-          fixed
-          src={
-            pathToFileURL(path.join(process.cwd(), "public", "ironz-logo.png"))
-              .href
-          }
-          style={{
-            position: "absolute",
-            top: 27,
-            left: 36,
-            width: 100,
-            height: 40,
-            objectFit: "cover",
-            objectPosition: "center",
-          }}
-        />
+        {logo ? (
+          <PdfImage
+            fixed
+            src={logo}
+            style={{
+              position: "absolute",
+              top: 27,
+              left: 36,
+              width: 100,
+              height: 40,
+              objectFit: "cover",
+              objectPosition: "center",
+            }}
+          />
+        ) : null}
         <Text
           fixed
           style={{ ...styles.title, position: "absolute", top: 28, right: 36 }}

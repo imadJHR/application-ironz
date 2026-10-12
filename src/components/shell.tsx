@@ -70,12 +70,15 @@ export function Shell({
       documents: { label: string; sub: string; href: string }[];
       products: { label: string; sub: string; href: string }[];
     } | null>(null),
-    [suggestOpen, setSuggestOpen] = useState(false);
+    [suggestOpen, setSuggestOpen] = useState(false),
+    [prevPathname, setPrevPathname] = useState(pathname);
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
+    setSuggestOpen(false);
+    setQuery("");
+  }
   useEffect(() => {
-    if (query.trim().length < 2) {
-      setSuggest(null);
-      return;
-    }
+    if (query.trim().length < 2) return;
     const controller = new AbortController(),
       timer = setTimeout(async () => {
         try {
@@ -96,10 +99,6 @@ export function Shell({
       controller.abort();
     };
   }, [query]);
-  useEffect(() => {
-    setSuggestOpen(false);
-    setQuery("");
-  }, [pathname]);
   const collapsed = useSyncExternalStore(
     subscribeSidebar,
     getSidebarSnapshot,
@@ -316,7 +315,14 @@ export function Shell({
                 placeholder="Rechercher dans IRONZ…"
                 minLength={2}
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setQuery(value);
+                  if (value.trim().length < 2) {
+                    setSuggest(null);
+                    setSuggestOpen(false);
+                  }
+                }}
                 onFocus={() => suggest && setSuggestOpen(true)}
                 onBlur={() => setTimeout(() => setSuggestOpen(false), 150)}
                 onKeyDown={(e) => e.key === "Escape" && setSuggestOpen(false)}
