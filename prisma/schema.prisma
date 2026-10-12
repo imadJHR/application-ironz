@@ -1,0 +1,220 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  COMMERCIAL
+  COMPTABILITE
+}
+
+enum DocumentKind {
+  QUOTE
+  ORDER
+  DELIVERY
+  INVOICE
+}
+
+model User {
+  id           String        @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  email        String        @unique
+  passwordHash String
+  role         Role          @default(COMMERCIAL)
+  active       Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  sessions     Session[]
+  documents    Document[]
+  payments     Payment[]
+  activities   ActivityLog[]
+}
+
+model Session {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  tokenHash String   @unique
+  userId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+}
+
+model LoginAttempt {
+  key         String   @id @map("_id")
+  attempts    Int      @default(0)
+  windowStart DateTime @default(now())
+}
+
+model Client {
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  type      String     @default("Entreprise")
+  name      String
+  contact   String     @default("")
+  phone     String     @default("")
+  email     String     @default("")
+  address   String     @default("")
+  city      String     @default("")
+  country   String     @default("Maroc")
+  ice       String     @default("")
+  taxId     String     @default("")
+  rc        String     @default("")
+  patente   String     @default("")
+  notes     String     @default("")
+  archived  Boolean    @default(false)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  documents Document[]
+  payments  Payment[]
+
+  @@index([name])
+}
+
+model Product {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  reference   String?
+  referenceKey String  @unique
+  type        String   @default("Produit")
+  name        String
+  description String   @default("")
+  category    String   @default("")
+  image       String   @default("")
+  unit        String   @default("unité")
+  price       String
+  tax         String   @default("20.00")
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model CompanySettings {
+  id            String   @id @default("ironz") @map("_id")
+  name          String   @default("IRONZ")
+  logo          String   @default("")
+  address       String   @default("")
+  city          String   @default("")
+  phone         String   @default("")
+  email         String   @default("")
+  website       String   @default("")
+  ice           String   @default("")
+  taxId         String   @default("")
+  rc            String   @default("")
+  patente       String   @default("")
+  currency      String   @default("MAD")
+  defaultTax    String   @default("20.00")
+  bank          String   @default("")
+  rib           String   @default("")
+  iban          String   @default("")
+  quoteValidity Int      @default(30)
+  paymentTerms  String   @default("Paiement à 30 jours.")
+  footer        String   @default("")
+  updatedAt     DateTime @updatedAt
+}
+
+model DocumentSequence {
+  id    String @id @map("_id")
+  value Int    @default(0)
+}
+
+model Document {
+  id              String         @id @default(auto()) @map("_id") @db.ObjectId
+  kind            DocumentKind
+  number          String         @unique
+  date            DateTime       @default(now())
+  dueDate         DateTime?
+  status          String         @default("DRAFT")
+  clientId        String         @db.ObjectId
+  client          Client         @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  clientSnapshot  Json
+  companySnapshot Json
+  sourceId        String?        @db.ObjectId
+  source          Document?      @relation("DocumentChain", fields: [sourceId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children        Document[]     @relation("DocumentChain")
+  createdById     String         @db.ObjectId
+  createdBy       User           @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  subtotal        String
+  discount        String
+  totalHT         String
+  totalTax        String
+  totalTTC        String
+  notes           String         @default("")
+  terms           String         @default("")
+  deliveryAddress String         @default("")
+  leadTime        String         @default("")
+  version         Int            @default(1)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  items           DocumentItem[]
+  payments        Payment[]
+
+  @@index([kind, date])
+  @@index([clientId, kind])
+  @@index([sourceId])
+  @@index([kind, status, dueDate])
+}
+
+model DocumentItem {
+  id           String         @id @default(auto()) @map("_id") @db.ObjectId
+  documentId   String         @db.ObjectId
+  document     Document       @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  position     Int
+  productId    String?        @db.ObjectId
+  sourceItemId String?        @db.ObjectId
+  sourceItem   DocumentItem?  @relation("DeliveryQuantities", fields: [sourceItemId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  derivedItems DocumentItem[] @relation("DeliveryQuantities")
+  reference    String         @default("")
+  name         String
+  description  String         @default("")
+  unit         String         @default("unité")
+  quantity     String
+  unitPrice    String
+  discountRate String         @default("0.00")
+  taxRate      String         @default("20.00")
+  totalHT      String
+  totalTax     String
+  totalTTC     String
+
+  @@index([documentId, position])
+  @@index([sourceItemId])
+}
+
+model Payment {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  idempotencyKey String   @unique
+  number         String   @unique
+  clientId       String   @db.ObjectId
+  client         Client   @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  invoiceId      String   @db.ObjectId
+  invoice        Document @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  date           DateTime @default(now())
+  amount         String
+  method         String
+  reference      String   @default("")
+  notes          String   @default("")
+  createdById    String   @db.ObjectId
+  createdBy      User     @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt      DateTime @default(now())
+
+  @@index([invoiceId])
+  @@index([date])
+}
+
+model ActivityLog {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @db.ObjectId
+  user       User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  action     String
+  entityType String
+  entityId   String
+  detail     String   @default("")
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([entityId])
+}

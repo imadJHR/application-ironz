@@ -1,0 +1,10 @@
+node_modules/
+src/generated/prisma/
+.next/
+.env
+.env.local
+.env.*.local
+*.tsbuildinfo
+test-results/
+playwright-report/
+.local/
