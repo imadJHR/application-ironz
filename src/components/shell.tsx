@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { Brand } from "./brand";
 import { logout } from "@/server/actions";
+import { allowed, type AccessRole } from "@/lib/permissions";
 const links = [
   { label: "Tableau de bord", href: "/", icon: LayoutDashboard },
   { label: "Clients", href: "/clients", icon: UsersRound },
@@ -52,11 +53,13 @@ export function Shell({
   user,
   preview,
   logo,
+  notifications = { overdue: 0, pending: 0, total: 0 },
 }: {
   children: React.ReactNode;
   user: { name: string; role: string };
   preview: boolean;
   logo?: string;
+  notifications?: { overdue: number; pending: number; total: number };
 }) {
   const pathname = usePathname(),
     router = useRouter(),
@@ -104,7 +107,7 @@ export function Shell({
   );
   const [mobile, setMobile] = useState(false),
     [account, setAccount] = useState(false),
-    [notifications, setNotifications] = useState(false);
+    [notifOpen, setNotifOpen] = useState(false);
   const toggleSidebar = () => {
     localStorage.setItem("ironz-sidebar-collapsed", String(!collapsed));
     window.dispatchEvent(new Event("ironz-sidebar-change"));
@@ -118,7 +121,7 @@ export function Shell({
       if (e.key === "Escape") {
         setAccount(false);
         setMobile(false);
-        setNotifications(false);
+        setNotifOpen(false);
       }
     };
     window.addEventListener("keydown", handler);
@@ -373,10 +376,20 @@ export function Shell({
             <div className="topbar-divider" />
             <button
               className="notification-button"
-              aria-label="Éléments à suivre"
-              onClick={() => setNotifications(!notifications)}
+              aria-label={
+                notifications.total
+                  ? `${notifications.total} élément(s) à suivre`
+                  : "Éléments à suivre"
+              }
+              aria-expanded={notifOpen}
+              onClick={() => setNotifOpen(!notifOpen)}
             >
               <Bell size={19} />
+              {notifications.total > 0 && (
+                <span className="notification-badge" aria-hidden="true">
+                  {notifications.total > 99 ? "99+" : notifications.total}
+                </span>
+              )}
             </button>
             <button
               className="topbar-avatar"
@@ -410,39 +423,69 @@ export function Shell({
             </form>
           </div>
         )}
-        {notifications && (
+        {notifOpen && (
           <div className="notification-panel">
             <div>
-              <strong>À suivre</strong>
+              <strong>
+                À suivre{" "}
+                {notifications.total > 0 && (
+                  <span className="count-tag">{notifications.total}</span>
+                )}
+              </strong>
               <button
                 aria-label="Fermer"
-                onClick={() => setNotifications(false)}
+                onClick={() => setNotifOpen(false)}
               >
                 <X size={16} />
               </button>
             </div>
-            <Link
-              href="/factures?status=OVERDUE"
-              onClick={() => setNotifications(false)}
-            >
-              <ReceiptText size={20} />
-              <span>
-                Factures en retard
-                <small>Consultez les échéances à relancer.</small>
-              </span>
-              <ArrowUpRight size={16} />
-            </Link>
-            <Link
-              href="/devis?status=SENT"
-              onClick={() => setNotifications(false)}
-            >
-              <FileText size={20} />
-              <span>
-                Devis en attente
-                <small>Retrouvez les propositions envoyées.</small>
-              </span>
-              <ArrowUpRight size={16} />
-            </Link>
+            {allowed(user.role as AccessRole, "invoice") && (
+              <Link
+                href="/factures?status=OVERDUE"
+                onClick={() => setNotifOpen(false)}
+              >
+                <ReceiptText size={20} />
+                <span>
+                  Factures en retard
+                  <small>
+                    {notifications.overdue
+                      ? `${notifications.overdue} échéance(s) à relancer.`
+                      : "Aucune facture en retard."}
+                  </small>
+                </span>
+                {notifications.overdue > 0 && (
+                  <span className="notification-count">
+                    {notifications.overdue}
+                  </span>
+                )}
+                <ArrowUpRight size={16} />
+              </Link>
+            )}
+            {allowed(user.role as AccessRole, "sales") && (
+              <Link
+                href="/devis?status=SENT"
+                onClick={() => setNotifOpen(false)}
+              >
+                <FileText size={20} />
+                <span>
+                  Devis en attente
+                  <small>
+                    {notifications.pending
+                      ? `${notifications.pending} proposition(s) envoyée(s).`
+                      : "Aucun devis en attente."}
+                  </small>
+                </span>
+                {notifications.pending > 0 && (
+                  <span className="notification-count">
+                    {notifications.pending}
+                  </span>
+                )}
+                <ArrowUpRight size={16} />
+              </Link>
+            )}
+            {notifications.total === 0 && (
+              <p className="notification-empty">Tout est à jour.</p>
+            )}
           </div>
         )}
         {preview && (

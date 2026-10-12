@@ -217,8 +217,30 @@ export async function selectors() {
   ]);
   return serialize({ clients, products });
 }
-export async function dashboard(from?: string, to?: string) {
+export async function notifications() {
   await requireUser();
+  if (isPreview()) return { overdue: 0, pending: 0, total: 0 };
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const [overdue, pending] = await Promise.all([
+    db.document.count({
+      where: {
+        kind: "INVOICE",
+        status: { in: ["SENT", "PARTIAL", "OVERDUE"] },
+        dueDate: { lt: today },
+      },
+    }),
+    db.document.count({
+      where: {
+        kind: "QUOTE",
+        status: "SENT",
+        OR: [{ dueDate: null }, { dueDate: { gte: today } }],
+      },
+    }),
+  ]);
+  return { overdue, pending, total: overdue + pending };
+}
+export async function dashboard(from?: string, to?: string) {  await requireUser();
   const now = new Date(),
     start = validDate(from) || new Date(now.getFullYear(), 0, 1),
     end = validDate(to) ? new Date(validDate(to)!.getTime() + 86399999) : now;

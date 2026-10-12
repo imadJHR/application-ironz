@@ -397,10 +397,6 @@ export function CommercialPdf({
             </Text>
             <View style={{ width: col[1], paddingRight: 10 }}>
               <Text style={styles.itemName}>{item.name}</Text>
-              <Text style={styles.description}>
-                {order ? "SKU : " : ""}
-                {item.reference}
-              </Text>
               {order && (
                 <Text style={styles.description}>
                   {[

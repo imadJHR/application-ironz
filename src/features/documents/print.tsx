@@ -174,16 +174,12 @@ export function CommercialPrint({
               </td>
               <td>
                 <strong>{i.name}</strong>
-                <div className="print-company">
-                  {order ? "SKU : " + i.reference : i.reference}
-                  {order && (
-                    <>
-                      <br />
-                      {i.discountRate > 0 && `Remise ${i.discountRate} % · `}
-                      TVA {i.taxRate} %
-                    </>
-                  )}
-                </div>
+                {order && (
+                  <div className="print-company">
+                    {i.discountRate > 0 && `Remise ${i.discountRate} % · `}
+                    TVA {i.taxRate} %
+                  </div>
+                )}
               </td>
               {order ? (
                 <>
