@@ -1652,6 +1652,26 @@ tbody tr:last-child td {
 .catalog-select input {
   flex: 1;
 }
+.catalog-search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  min-width: 190px;
+}
+.catalog-search input {
+  width: 100%;
+  padding-right: 30px;
+}
+.search-clear {
+  position: absolute;
+  right: 8px;
+  display: flex;
+  padding: 4px;
+  color: #858585;
+  border-radius: 50%;
+}
 .catalog-select select {
   flex: 1;
   min-width: 190px;

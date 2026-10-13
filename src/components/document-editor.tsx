@@ -14,6 +14,7 @@ import {
   Save,
   Search,
   ShieldCheck,
+  X,
 } from "lucide-react";
 import {
   documentSchema,
@@ -212,6 +213,7 @@ export function DocumentEditor({
     );
     if (emptyIndex >= 0) update(emptyIndex, item);
     else append(item);
+    setQuery("");
   };
   const filtered = products.filter((p) =>
     (p.name + " " + (p.reference || ""))
@@ -265,19 +267,33 @@ export function DocumentEditor({
           <div className="form-section">
             <h2>02 · Articles & prestations</h2>
             <div className="catalog-select">
-              <Search size={16} className="muted" />
-              <Input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Nom ou référence du catalogue…"
-                aria-label="Rechercher dans le catalogue"
-              />
+              <span className="catalog-search">
+                <Search size={16} className="muted" />
+                <Input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Nom ou référence du catalogue…"
+                  aria-label="Rechercher dans le catalogue"
+                />
+                {query && (
+                  <button
+                    type="button"
+                    className="search-clear"
+                    aria-label="Effacer la recherche"
+                    onClick={() => setQuery("")}
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </span>
               <select
                 aria-label="Ajouter un article du catalogue"
                 value=""
                 onChange={(e) => addProduct(e.target.value)}
               >
-                <option value="">Ajouter depuis le catalogue</option>
+                <option value="">
+                  Ajouter depuis le catalogue ({filtered.length})
+                </option>
                 {(["Produit", "Service"] as const).map(
                   (t) =>
                     filtered.some((p) => (p.type || "Produit") === t) && (
