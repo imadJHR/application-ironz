@@ -3,6 +3,15 @@ const config: NextConfig = {
   turbopack: { root: process.cwd() },
   serverExternalPackages: ["@prisma/client"],
   poweredByHeader: false,
+  // pdfkit charge ses polices/données via des imports dynamiques que le
+  // file-tracing Vercel ne détecte pas. Sans ceci, la route PDF échoue en
+  // production avec "Cannot find module .../pdfkit/js/standard-fonts/...".
+  outputFileTracingIncludes: {
+    "/api/documents/[id]/pdf": [
+      "./node_modules/pdfkit/js/standard-fonts/**/*",
+      "./node_modules/pdfkit/js/data/**/*",
+    ],
+  },
   async headers() {
     return [
       {
