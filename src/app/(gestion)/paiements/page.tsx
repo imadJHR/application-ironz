@@ -50,7 +50,7 @@ export default async function Payments({
           take: 12,
           skip: (pageNumber(filters.page) - 1) * 12,
           include: {
-            invoice: true,
+            invoice: { include: { payments: true } },
             client: true,
             createdBy: { select: { name: true } },
           },
@@ -81,10 +81,22 @@ export default async function Payments({
                   <th>DATE</th>
                   <th>MOYEN / RÉFÉRENCE</th>
                   <th className="align-right">MONTANT</th>
+                  <th className="align-right">RESTE À PAYER</th>
                 </tr>
               </thead>
               <tbody>
-                {payments.map((p) => (
+                {payments.map((p) => {
+                  const currency = String(
+                    (p.invoice.companySnapshot as Record<string, unknown>)
+                      .currency || "MAD",
+                  );
+                  const remaining =
+                    Number(p.invoice.totalTTC) -
+                    p.invoice.payments.reduce(
+                      (s, pay) => s + Number(pay.amount),
+                      0,
+                    );
+                  return (
                   <tr key={p.id}>
                     <td data-label="Paiement">
                       <strong className="table-primary">{p.number}</strong>
@@ -114,16 +126,17 @@ export default async function Payments({
                       data-label="Montant"
                       className="align-right table-amount"
                     >
-                      {money(
-                        Number(p.amount),
-                        String(
-                          (p.invoice.companySnapshot as Record<string, unknown>)
-                            .currency || "MAD",
-                        ),
-                      )}
+                      {money(Number(p.amount), currency)}
+                    </td>
+                    <td
+                      data-label="Reste à payer"
+                      className="align-right table-amount"
+                    >
+                      {money(Math.max(0, remaining), currency)}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
