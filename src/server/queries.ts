@@ -178,6 +178,8 @@ export async function documents(kind: Kind, filters: Filters = {}) {
       status: "SENT",
       OR: [{ dueDate: null }, { dueDate: { gte: today } }],
     };
+  if (kind === "QUOTE" && filters.status === "ACCEPTED")
+    statusWhere = { status: { in: ["ACCEPTED", "CONVERTED"] } };
   const search: Prisma.DocumentWhereInput = filters.q
     ? {
         OR: [
