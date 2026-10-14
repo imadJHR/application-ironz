@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { currentUser } from "@/server/auth";
+import { currentUser, appBaseUrl } from "@/server/auth";
 import { getDocument } from "@/server/queries";
 import { documentData } from "@/features/documents/document-data";
 import { CommercialPdf } from "@/features/documents/pdf";
@@ -18,7 +18,7 @@ async function logoSrc(): Promise<string | null> {
   }
   try {
     const res = await fetch(
-      new URL("/ironz-logo.png", process.env.APP_URL || "http://localhost:3000"),
+      new URL("/ironz-logo.png", appBaseUrl()),
     );
     if (!res.ok) return null;
     return (

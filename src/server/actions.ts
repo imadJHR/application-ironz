@@ -7,7 +7,7 @@ import { Prisma } from "@/generated/prisma";
 import Decimal from "decimal.js";
 import { z } from "zod";
 import { db, atomic, nextNumber, jsonSnapshot } from "./db";
-import { requireUser, requireDocumentWrite, sessionHash } from "./auth";
+import { requireUser, requireDocumentWrite, sessionHash, appOrigins } from "./auth";
 import { verifyPassword, hashPassword } from "./password";
 import {
   calculate,
@@ -73,9 +73,17 @@ export async function login(
     };
   try {
     const h = await headers();
-    const host = new URL(process.env.APP_URL || "http://localhost:3000").host;
-    if (h.get("origin") && new URL(h.get("origin")!).host !== host)
-      return { ok: false, message: "Origine de connexion invalide." };
+    const origin = h.get("origin");
+    if (origin) {
+      let originHost = "";
+      try {
+        originHost = new URL(origin).host;
+      } catch {
+        originHost = "";
+      }
+      if (!appOrigins().has(originHost))
+        return { ok: false, message: "Origine de connexion invalide." };
+    }
     const key = sessionHash(data.data.email);
     const accepted = await atomic(async (tx) => {
       const now = new Date(),

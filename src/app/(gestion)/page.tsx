@@ -176,7 +176,7 @@ export default async function Dashboard({
             value: remaining,
             icon: Clock3,
             note: unpaid.length + " facture(s) à suivre",
-            href: "/factures?status=SENT",
+            href: "/factures",
           },
         ].map(({ label, value, icon: Icon, note, href, primary }) => (
           <Link
