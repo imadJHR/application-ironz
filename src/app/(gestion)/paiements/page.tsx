@@ -80,8 +80,8 @@ export default async function Payments({
                   <th>FACTURE</th>
                   <th>DATE</th>
                   <th>MOYEN / RÉFÉRENCE</th>
-                  <th className="align-right">MONTANT</th>
                   <th className="align-right">TOTAL FACTURE</th>
+                  <th className="align-right">MONTANT</th>
                   <th className="align-right">RESTE À PAYER</th>
                 </tr>
               </thead>
@@ -124,16 +124,16 @@ export default async function Payments({
                       </span>
                     </td>
                     <td
-                      data-label="Montant"
-                      className="align-right table-amount"
-                    >
-                      {money(Number(p.amount), currency)}
-                    </td>
-                    <td
                       data-label="Total facture"
                       className="align-right table-amount"
                     >
                       {money(Number(p.invoice.totalTTC), currency)}
+                    </td>
+                    <td
+                      data-label="Montant"
+                      className="align-right table-amount"
+                    >
+                      {money(Number(p.amount), currency)}
                     </td>
                     <td
                       data-label="Reste à payer"
