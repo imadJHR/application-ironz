@@ -5,7 +5,7 @@
 
 1. INSTALLATION
 ---------------
-• Double-cliquez sur : IRONZ-Gestion-Setup-0.1.0.exe (≈ 136 Mo)
+• Double-cliquez sur : IRONZ-Gestion-Setup-0.1.0.exe (135,8 Mo)
 • Aucun droit administrateur n'est nécessaire (installation par
   utilisateur).
 • Choisissez l'emplacement d'installation (par défaut :
@@ -13,7 +13,7 @@
 • Laissez les cases "raccourcis" cochées (Bureau + Menu Démarrer).
 • L'installation décompresse l'application et peut durer 1 à 3
   minutes selon l'antivirus : c'est normal. La fenêtre peut sembler
-  figée vers 70 % pendant la phase d'extration — laissez-la se
+  figée vers 70 % pendant la phase d'extraction — laissez-la se
   terminer.
 • NOTE : l'installeur n'est pas signé numériquement ; si Windows
   affiche "Windows a protégé votre ordinateur", cliquez sur
@@ -39,29 +39,15 @@
   être réinitialisé.
 • Pour créer d'autres comptes ensuite : "Utilisateurs" (admin).
 
-3. MISE À JOUR DEPUIS UNE VERSION ANTÉRIEURE (essai interne 1.0.0 à 1.1.2)
---------------------------------------------------------------------------
-• Installez simplement la 0.1.0 par-dessus : vos données et votre
-  compte existant sont conservés, aucune reconfiguration n'est
-  demandée.
-• L'ancien compte administrateur fonctionne toujours.
-• À l'ancien système ne correspond pas encore de code de récupération :
-  créez-le depuis "Paramètres" ▸ "Code de récupération" après
-  connexion (il vous sera demandé votre mot de passe actuel).
-• (L'ancien compte administrateur créé lors de votre première
-  installation de la 1.0.0 fonctionne toujours ; connectez-vous puis
-  changez le mot de passe dans "Paramètres" ▸ "Compte" pour finaliser
-  la mise en sécurité de votre installation.)
-
-4. EMPLOI
+3. EMPLOI
 ---------
 • Application 100 % hors ligne (offline) : tout fonctionne sur le
   poste, sans serveur ni connexion Internet.
 • Fonctionnalités : clients, produits, devis, factures, paiements,
   génération de PDF, paramètres de l'entreprise.
 
-5. SAUVEGARDE ET RESTAURATION (nouveau, intégré)
------------------------------------------------
+4. SAUVEGARDE ET RESTAURATION
+-----------------------------
 • Deux protections complémentaires :
   A) Dans l'application (recommandé)
      "Paramètres" ▸ section "Sauvegarde et restauration" :
@@ -84,16 +70,16 @@
 • Fréquence recommandée : une sauvegarde par semaine, plus une
   sauvegarde avant chaque mise à jour de l'application.
 
-6. DÉSINSTALLATION / MISE À JOUR
---------------------------------
+5. DÉSINSTALLATION (données conservées)
+---------------------------------------
 • Windows ▸ Paramètres ▸ Applications ▸ IRONZ Gestion ▸ Désinstaller,
   ou "Uninstall IRONZ Gestion.exe" dans le dossier d'installation.
 • IMPORTANT : la désinstallation NE SUPPRIME PAS vos données
   (ironz.db reste dans AppData\Roaming\ironz-gestion). Elles sont
   reprises telles quelles lors d'une réinstallation.
 
-7. MOT DE PASSE OUBLIÉ (nouveau, hors ligne)
---------------------------------------------
+6. MOT DE PASSE OUBLIÉ (hors ligne)
+-----------------------------------
 • Sur la page de connexion, cliquez sur "Mot de passe oublié ?".
 • Saisissez : votre email administrateur, votre CODE DE RÉCUPÉRATION
   (celui affiché à la configuration initiale ou lors d'une
@@ -113,11 +99,11 @@
       "Paramètres" ▸ "Code de récupération" (mot de passe actuel
       requis).
 
-8. SUPPORT
+7. SUPPORT
 ----------
 • Ne supprimez pas, ne renommez pas et ne déplacez pas "ironz.db"
   pendant que l'application fonctionne.
 • Si l'application ne démarre pas : consultez le journal
   AppData\Roaming\ironz-gestion\launch.log
 
-── IRONZ — Document interne de livraison v0.1.0 ──
+── IRONZ — Notice de livraison v0.1.0 ──

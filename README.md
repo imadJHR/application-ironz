@@ -33,6 +33,8 @@ afficher un avertissement au premier lancement. Cliquez sur
 5. Créez votre compte **administrateur** au premier lancement : entreprise,
    nom, email et mot de passe de 12 caractères minimum. Cette configuration
    initiale n'apparaît qu'une seule fois et ne peut pas être rejouée.
+6. Notez le **code de récupération** affiché à la fin de la configuration :
+   il s'affiche une seule fois — conservez-le en lieu sûr.
 
 Aucun identifiant n'est fourni par défaut : vous définissez le vôtre.
 Installer une mise à jour par-dessus une version existante conserve vos
@@ -51,7 +53,8 @@ données et vos comptes.
 | Paiements | Contrôles de solde en transaction, historique par facture |
 | PDF | Formats A4 avec logo, mentions et pagination (les bons de livraison masquent les prix) |
 | Recherche | Recherche globale et filtres dans tous les modules |
-| Backup & Restore | Sauvegarde et restauration de vos données en deux clics (menu Paramètres) |
+| Utilisateurs | Création et gestion des comptes de votre entreprise (administrateur) |
+| Sauvegarde / Restauration | Sauvegarde et restauration de vos données en deux clics (menu Paramètres) |
 
 ## Sécurité et données
 
@@ -62,9 +65,14 @@ données et vos comptes.
   quitte jamais votre ordinateur** (aucun serveur, aucune télémétrie).
 - Les mots de passe sont protégés par **scrypt** (paramètres renforcés et
   versionnés, recommandations OWASP).
+- Un **code de récupération** unique est affiché une seule fois à la
+  configuration initiale : il permet de retrouver l'accès à votre compte
+  si vous oubliez votre mot de passe, entièrement hors ligne. Il est
+  conservé uniquement sous forme de hachage et est à usage unique.
 - Installer une mise à jour, ou même désinstaller l'application, ne
   supprime pas votre base de données : vos données restent dans
-  `AppData\Roaming\ironz-gestion`.
+  `AppData\Roaming\ironz-gestion`. Sauvegarder régulièrement vos données
+  est recommandé (menu Paramètres).
 
 ## Liens
 
@@ -76,6 +84,6 @@ données et vos comptes.
 
 - [CHANGELOG détaillé](distribution/CHANGELOG.md)
 - [Documentation de l'ancienne architecture Web (Next.js + MongoDB Atlas)](docs/ARCHITECTURE-WEB-MONGODB.md) — conservée pour référence technique.
-- [Rapport de livraison](distribution/SESSION-1.1.2-RAPPORT.md) — contenu publié une fois renuméroté en 0.1.0.
+- [Rapport de validation interne](distribution/SESSION-1.1.2-RAPPORT.md) — dossier de tests de livraison (maintenance interne).
 
 Application Desktop : Electron, SQLite, Prisma, Next.js. Application Web (historique) : Next.js App Router, MongoDB Atlas, Prisma 6. Consultez [docs/ARCHITECTURE-WEB-MONGODB.md](docs/ARCHITECTURE-WEB-MONGODB.md) pour l'architecture web complète.
