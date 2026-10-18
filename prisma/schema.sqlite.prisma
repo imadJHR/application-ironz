@@ -38,6 +38,7 @@ model User {
   documents    Document[]
   payments     Payment[]
   activities   ActivityLog[]
+  recoveryCode RecoveryCode?
 }
 
 model Session {
@@ -55,6 +56,20 @@ model LoginAttempt {
   key         String   @id
   attempts    Int      @default(0)
   windowStart DateTime @default(now())
+}
+
+// Code de récupération de compte (1.1.2) : seul le hash SHA-256 du code
+// est stocké, jamais le code lui-même. Un seul code actif par utilisateur ;
+// consommé (consumedAt) il devient définitivement inutilisable.
+model RecoveryCode {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash       String    @unique
+  consumedAt     DateTime?
+  failedAttempts Int       @default(0)
+  windowStart    DateTime  @default(now())
+  createdAt      DateTime  @default(now())
 }
 
 model Client {

@@ -1,10 +1,17 @@
 "use client";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { ArrowRight, LockKeyhole } from "lucide-react";
 import { login } from "@/server/actions";
+import { ForgotPasswordForm } from "./forgot-password-form";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 export function LoginForm() {
+  const [mode, setMode] = useState<"login" | "forgot">("login");
+  if (mode === "forgot")
+    return <ForgotPasswordForm onBack={() => setMode("login")} />;
+  return <LoginFields onForgot={() => setMode("forgot")} />;
+}
+function LoginFields({ onForgot }: { onForgot: () => void }) {
   const [state, action, pending] = useActionState(login, {
     ok: false,
     message: "",
@@ -43,6 +50,9 @@ export function LoginForm() {
           <ArrowRight size={16} />
         </Button>
       </form>
+      <button type="button" className="login-link" onClick={onForgot}>
+        Mot de passe oublié ?
+      </button>
       <div className="login-footnote">
         <LockKeyhole size={14} />
         <span>

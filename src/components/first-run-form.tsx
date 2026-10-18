@@ -1,19 +1,55 @@
 "use client";
-import { useActionState, useEffect } from "react";
+import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, KeyRound } from "lucide-react";
 import { configureFirstAdmin } from "@/server/actions";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 export function FirstRunForm() {
   const router = useRouter();
+  const [saved, setSaved] = useState(false);
   const [state, action, pending] = useActionState(configureFirstAdmin, {
     ok: false,
     message: "",
   });
-  useEffect(() => {
-    if (state.ok) router.replace("/connexion");
-  }, [state.ok, router]);
+  // Affichage unique du code de récupération : après la configuration,
+  // l'utilisateur doit le noter avant de rejoindre la page de connexion.
+  if (state.ok && state.recoveryCode && !saved) {
+    return (
+      <div className="recovery-once">
+        <h3>
+          <KeyRound size={16} /> Code de récupération
+        </h3>
+        <p className="form-description">
+          Notez ce code dans un endroit sûr (papier, gestionnaire de mots de
+          passe). Il vous permettra de retrouver l’accès à ce compte si vous
+          oubliez votre mot de passe. Il s’affiche{" "}
+          <strong>une seule fois</strong> et il n’est jamais conservé
+          ailleurs : seule une copie chiffrée (hash) est enregistrée.
+        </p>
+        <div className="recovery-code-display" data-testid="recovery-code">
+          {state.recoveryCode}
+        </div>
+        <p className="form-description">
+          Sans ce code, un mot de passe oublié ne peut pas être réinitialisé.
+        </p>
+        <Button type="button" onClick={() => setSaved(true)}>
+          J’ai sauvegardé mon code
+        </Button>
+      </div>
+    );
+  }
+  if (state.ok)
+    return (
+      <>
+        <p className="login-error" role="status">
+          {state.message}
+        </p>
+        <Button type="button" onClick={() => router.replace("/connexion")}>
+          Aller à la connexion <ArrowRight size={16} />
+        </Button>
+      </>
+    );
   return (
     <>
       <form action={action}>

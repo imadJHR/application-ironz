@@ -1,4 +1,4 @@
-﻿// Test de fumée 1.1.1 (serveur standalone + SQLite, base vierge).
+﻿// Test de fumée 1.1.2 (serveur standalone + SQLite, base vierge).
 // Usage : node desktop/smoke.mjs  (serveur attendu sur http://127.0.0.1:4380)
 // Tout le flux part de la configuration initiale : aucun identifiant
 // par défaut n'existe dans l'application.
@@ -11,6 +11,7 @@ const company = "IRONZ Steel Test";
 const adminName = "Admin Setup Test";
 const email = "smoke-" + randomBytes(4).toString("hex") + "@ironz.test";
 const password = "Fume+" + randomBytes(12).toString("base64url") + "!1";
+const newPassword = "Fume2+" + randomBytes(12).toString("base64url") + "!2";
 const backupFile = "desktop/smoke-sauvegarde.db";
 
 const browser = await chromium.launch();
@@ -41,7 +42,8 @@ try {
   });
   console.log("OK refus mots de passe non concordants");
 
-  // 4. Configuration des identifiants -> retour à la connexion.
+  // 4. Configuration des identifiants -> écran du code de récupération
+  // (affichage unique avant l'accès au login).
   // (React 19 vide les champs non-contrôlés après une action : tout refill.)
   await page.getByLabel("Nom de l’entreprise").fill(company);
   await page.getByLabel("Nom de l’administrateur").fill(adminName);
@@ -49,6 +51,16 @@ try {
   await page.getByLabel("Mot de passe · 12 caractères minimum").fill(password);
   await page.getByLabel("Confirmer le mot de passe").fill(password);
   await page.getByRole("button", { name: "Configurer IRONZ Gestion" }).click();
+  const codeScreen = page.getByTestId("recovery-code");
+  await codeScreen.waitFor({ timeout: 90000 });
+  const initialCode = (await codeScreen.textContent())?.trim() || "";
+  if (!/^[0-9A-F]{8}(-[0-9A-F]{8}){3}$/.test(initialCode))
+    throw new Error("code de récupération affiché invalide : " + initialCode);
+  console.log("OK code de récupération affiché (128 bits, format 4x8)");
+  await page
+    .getByRole("button", { name: "J’ai sauvegardé mon code" })
+    .click();
+  await page.getByRole("button", { name: /Aller à la connexion/ }).click();
   await page.waitForURL(base + "/connexion", { timeout: 60000 });
   console.log("OK configuration initiale -> /connexion");
 
@@ -124,9 +136,13 @@ try {
   // (Le serveur écrit dans %APPDATA%/ironz-gestion/ironz.db : en test
   // standalone de dev, la variable d'environnement IRONZ_DB indique où.)
   const dbFile = process.env.IRONZ_DB || "";
-  if (dbFile && fs.existsSync(dbFile)) {
+  async function rawDbContains(secret) {
+    if (!dbFile || !fs.existsSync(dbFile)) return false;
     const raw = fs.readFileSync(dbFile);
-    if (raw.toString("latin1").includes(password))
+    return raw.toString("latin1").includes(secret);
+  }
+  if (dbFile && fs.existsSync(dbFile)) {
+    if (await rawDbContains(password))
       throw new Error("mot de passe stocké en clair !");
     console.log("OK mot de passe non stocké en clair");
   } else {
@@ -187,9 +203,145 @@ try {
   await page.waitForURL(/\/clients\/(?!nouveau)[a-z0-9]+$/, { timeout: 90000 });
   console.log("OK écriture post-restauration");
 
+  // 19. Déconnexion + lien « Mot de passe oublié ? ».
+  await page
+    .getByRole("banner")
+    .getByRole("button", { name: "Menu du compte" })
+    .click();
+  await page.getByRole("button", { name: "Se déconnecter" }).click();
+  await page.waitForURL(base + "/connexion", { timeout: 60000 });
+  await page.getByRole("button", { name: "Mot de passe oublié ?" }).click();
+  console.log("OK lien mot de passe oublié");
+
+  async function recoverySubmit(codeValue, pass = newPassword, resolve = true) {
+    const emailBox = page.getByLabel("Email du compte administrateur");
+    await emailBox.fill(email);
+    await page.getByLabel("Code de récupération").fill(codeValue);
+    await page
+      .getByLabel("Nouveau mot de passe · 12 caractères minimum")
+      .fill(pass);
+    await page
+      .getByLabel("Confirmer le nouveau mot de passe")
+      .fill(pass + (pass === newPassword ? "" : "x"));
+    const submit = page.getByRole("button", { name: "Récupérer l’accès" });
+    await submit.click();
+    if (resolve) {
+      // Séquence fiable : l'action démarre (bouton désactivé) puis se
+      // résout (réactivé, ou écran remplacé en cas de succès).
+      try {
+        await expect(submit).toBeDisabled({ timeout: 10000 });
+        await expect(submit).toBeEnabled({ timeout: 45000 });
+      } catch {
+        // Écran remplacé (succès) : bouton parti, rien à attendre.
+      }
+    }
+  }
+  const genericError = "Email, code ou informations invalides.";
+
+  // 20. Code erroné : refus avec message générique (aucune information
+  // sur l'existence du compte).
+  await recoverySubmit("XXXXXXXX-YYYYYYYY-ZZZZZZZZ-00000000");
+  await expect(page.locator(".login-error")).toContainText(genericError, {
+    timeout: 30000,
+  });
+  console.log("OK code erroné refusé (message générique)");
+
+  // 21. Code valide : mot de passe changé + NOUVEAU code affiché une fois.
+  await recoverySubmit(initialCode);
+  const newCodeEl = page.getByTestId("recovery-code");
+  await newCodeEl.waitFor({ timeout: 90000 });
+  const recoveredCode = (await newCodeEl.textContent())?.trim() || "";
+  if (!/^[0-9A-F]{8}(-[0-9A-F]{8}){3}$/.test(recoveredCode))
+    throw new Error("nouveau code invalide");
+  if (recoveredCode === initialCode) throw new Error("code non régénéré");
+  console.log("OK code valide -> nouveau code de récupération affiché");
+  await page
+    .getByRole("button", { name: "Retour à la connexion" })
+    .click();
+
+  // 22. L'ancien mot de passe est mort ; le nouveau fonctionne.
+  await page.getByLabel("Email professionnel").fill(email);
+  await page.getByLabel("Mot de passe", { exact: true }).fill(password);
+  await page.getByRole("button", { name: "Se connecter", exact: true }).click();
+  await expect(page.locator(".login-error")).toContainText(
+    "Email ou mot de passe incorrect.",
+    { timeout: 30000 },
+  );
+  await page.getByLabel("Email professionnel").fill(email);
+  await page.getByLabel("Mot de passe", { exact: true }).fill(newPassword);
+  await page.getByRole("button", { name: "Se connecter", exact: true }).click();
+  await page.waitForURL(base + "/", { waitUntil: "commit", timeout: 60000 });
+  console.log("OK ancien mot de passe refusé, nouveau accepté");
+
+  // 23. Réutilisation du code initial (consommé) : refusée.
+  await page.context().clearCookies();
+  await page.goto(base + "/connexion");
+  await page.getByRole("button", { name: "Mot de passe oublié ?" }).click();
+  await recoverySubmit(initialCode, password);
+  await expect(page.locator(".login-error")).toContainText(genericError, {
+    timeout: 30000,
+  });
+  await page.getByRole("button", { name: /Retour à la connexion/ }).click();
+  console.log("OK code consommé réutilisé refusé");
+
+  // 24. Régénération du code depuis Paramètres (admin connecté).
+  await page.getByLabel("Email professionnel").fill(email);
+  await page.getByLabel("Mot de passe", { exact: true }).fill(newPassword);
+  await page.getByRole("button", { name: "Se connecter", exact: true }).click();
+  await page.waitForURL(base + "/", { waitUntil: "commit", timeout: 60000 });
+  await page.waitForLoadState("load", { timeout: 90000 });
+  await page.goto(base + "/parametres");
+  await page
+    .getByRole("button", { name: "Régénérer mon code de récupération" })
+    .click();
+  await page.getByLabel("Mot de passe actuel").fill(newPassword);
+  await page.getByRole("button", { name: "Régénérer", exact: true }).click();
+  const regenEl = page.getByTestId("recovery-code");
+  await regenEl.waitFor({ timeout: 90000 });
+  const regenCode = (await regenEl.textContent())?.trim() || "";
+  if (!/^[0-9A-F]{8}(-[0-9A-F]{8}){3}$/.test(regenCode))
+    throw new Error("code régénéré invalide");
+  if (regenCode === recoveredCode) throw new Error("régénération muette");
+  await page
+    .getByRole("button", { name: "J’ai sauvegardé mon code" })
+    .click();
+  console.log("OK code régénéré depuis Paramètres");
+
+  // 25. Anti-bruteforce : tentatives répétées finiront par être bloquées
+  // (limiteur glissant 15 min, 10 essais par email).
+  await page.context().clearCookies();
+  await page.goto(base + "/connexion");
+  await page.getByRole("button", { name: "Mot de passe oublié ?" }).click();
+  let bruteforceBlocked = false;
+  for (let i = 0; i < 12; i++) {
+    await recoverySubmit(
+      "DEADBEEF" + (i % 16).toString(16).toUpperCase() + "-CAFEBABE-12345678-9ABCDEF0",
+    );
+    const err = page.locator(".login-error");
+    await expect(err).toContainText(/invalides|Trop de tentatives/, {
+      timeout: 30000,
+    });
+    if ((await err.textContent())?.includes("Trop de tentatives")) {
+      bruteforceBlocked = true;
+      break;
+    }
+  }
+  if (!bruteforceBlocked) throw new Error("limiteur anti-bruteforce inopérant");
+  console.log("OK tentatives répétées bloquées (15 min)");
+
+  // 26. Aucun secret dans la base : ni mot de passe, ni code en clair.
+  if (dbFile && fs.existsSync(dbFile)) {
+    for (const secret of [password, newPassword, initialCode, recoveredCode, regenCode])
+      if (await rawDbContains(secret))
+        throw new Error("secret en clair dans la base !");
+    console.log("OK aucune donnée secrète en clair dans la base (codes inclus)");
+  } else {
+    console.log("INFO IRONZ_DB non défini : contrôle des codes sauté");
+  }
+
   await page.goto(base + "/");
   await page.screenshot({ path: "desktop/smoke-dashboard.png" });
-  console.log("FUMÉE DESKTOP 1.1.1 : TOUT Passe");
+  console.log("FUMÉE DESKTOP 1.1.2 : TOUT PASSE");
 } finally {
   await browser.close();
 }

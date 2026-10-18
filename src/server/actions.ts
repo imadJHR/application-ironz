@@ -15,7 +15,18 @@ import {
   isPreview,
 } from "./db";
 import { requireUser, requireDocumentWrite, sessionHash, appOrigins } from "./auth";
-import { verifyPassword, hashPassword } from "./password";
+import { verifyPassword, hashPassword, dummyHash } from "./password";
+import {
+  ensureRecoverySchema,
+  generateRecoveryCode,
+  hashRecoveryCode,
+  normalizeRecoveryCode,
+  recoveryHashMatches,
+  verifyRecoveryCodeInput,
+  RECOVERY_MAX_FAILED_ATTEMPTS,
+  RECOVERY_WINDOW_MS,
+  RECOVERY_WINDOW_ATTEMPTS,
+} from "./recovery";
 import {
   calculate,
   documentSchema,
@@ -32,8 +43,17 @@ import {
   settingsSchema,
   userSchema,
   firstRunSchema,
+  recoverySchema,
+  regenerateSchema,
 } from "./validation";
-export type Result = { ok: boolean; message: string; id?: string };
+// recoveryCode : le code de récupération en clair, renvoyé UNE SEULE FOIS
+// (affichage unique côté client) ; il n'est jamais stocké ni journalisé.
+export type Result = {
+  ok: boolean;
+  message: string;
+  id?: string;
+  recoveryCode?: string;
+};
 function failure(error: unknown): Result {
   if (error instanceof z.ZodError)
     return {
@@ -174,6 +194,13 @@ export async function configureFirstAdmin(
       business("Opération disponible uniquement dans l’application locale.");
     const data = firstRunSchema.parse(Object.fromEntries(form));
     const passwordHash = await hashPassword(data.password);
+    // Migration de schéma AVANT la transaction (le DDL opéré hors
+    // transaction évite tout verrou SQLite concurrent).
+    await ensureRecoverySchema();
+    // Code de récupération du premier administrateur : généré dans la
+    // transaction, renvoyé en clair une seule fois au client, stocké
+    // uniquement sous forme de hash, jamais écrit dans le journal.
+    const recovery = generateRecoveryCode();
     await db.$transaction(
       async (tx: Prisma.TransactionClient) => {
         const admins = await tx.user.count({ where: { role: "ADMIN" } });
@@ -194,6 +221,9 @@ export async function configureFirstAdmin(
             passwordHash,
           },
         });
+        await tx.recoveryCode.create({
+          data: { userId: admin.id, codeHash: recovery.hash },
+        });
         await tx.activityLog.create({
           data: {
             userId: admin.id,
@@ -206,8 +236,14 @@ export async function configureFirstAdmin(
       },
       { timeout: 15000 },
     );
-    refreshed();
-    return { ok: true, message: "Administrateur créé. Vous pouvez vous connecter." };
+    // PAS de revalidatePath ici : la page /premiere-installation redirigerait
+    // immédiatement (admin créé) et masquerait l'affichage unique du code.
+    // La page de connexion est rendue dynamiquement : elle détectera l'admin.
+    return {
+      ok: true,
+      message: "Administrateur créé. Vous pouvez vous connecter.",
+      recoveryCode: recovery.plain,
+    };
   } catch (e) {
     return failure(e);
   }
@@ -451,6 +487,197 @@ export async function resetPassword(
     return {
       ok: true,
       message: "Mot de passe réinitialisé. Les sessions ont été fermées.",
+    };
+  } catch (e) {
+    return failure(e);
+  }
+}
+// Message unique pour tous les échecs de récupération : aucune réponse
+// ne révèle si un email ou un code existe (anti-énumération de comptes).
+const RECOVERY_GENERIC = "Email, code ou informations invalides.";
+function recoveryFailure(): Result {
+  return { ok: false, message: RECOVERY_GENERIC };
+}
+// Récupération de compte administrateur (mot de passe oublié) : réservée
+// à l'application locale (desktop), elle exige le code de récupération
+// à usage unique. Un accès physique à la base SQLite ne prouve rien :
+// sans code valide, aucune réinitialisation n'est possible.
+export async function recoverAccount(
+  _previous: Result,
+  form: FormData,
+): Promise<Result> {
+  let data: z.infer<typeof recoverySchema> | null = null;
+  try {
+    if (!isDesktopDb()) return recoveryFailure();
+    const parsed = recoverySchema.safeParse(Object.fromEntries(form));
+    if (!parsed.success) return recoveryFailure();
+    data = parsed.data;
+    // Migration de schéma pour les bases héritées / restaurations anciennes.
+    await ensureRecoverySchema();
+    const h = await headers();
+    const origin = h.get("origin");
+    if (origin) {
+      let originHost = "";
+      try {
+        originHost = new URL(origin).host;
+      } catch {
+        originHost = "";
+      }
+      if (!appOrigins().has(originHost)) return recoveryFailure();
+    }
+    // Limite de tentatives par email (même fenêtre glissante que le login).
+    const key = "recovery:" + sessionHash(data.email);
+    const accepted = await atomic(async (tx) => {
+      const now = new Date();
+      const attempt = await tx.loginAttempt.upsert({
+        where: { key },
+        create: { key, attempts: 1 },
+        update: { attempts: { increment: 1 } },
+      });
+      if (now.getTime() - attempt.windowStart.getTime() > RECOVERY_WINDOW_MS) {
+        await tx.loginAttempt.update({
+          where: { key },
+          data: { attempts: 1, windowStart: now },
+        });
+        return true;
+      }
+      return attempt.attempts <= RECOVERY_WINDOW_ATTEMPTS;
+    });
+    // Coût scrypt à temps quasi constant même sur les échecs précoces.
+    const burn = verifyPassword(data.password, dummyHash());
+    if (!accepted) {
+      await burn;
+      return { ok: false, message: "Trop de tentatives. Réessayez dans 15 minutes." };
+    }
+    const user = await db.user.findUnique({
+      where: { email: data.email },
+    });
+    const adminOk = user?.active && user.role === "ADMIN";
+    const verdict = adminOk
+      ? await verifyRecoveryCodeInput(user.id, data.code)
+      : { ok: false, blocked: false, codeId: undefined as string | undefined };
+    if (verdict.codeId) {
+      // Code erroné mais existant : compter l'essai (blocage après 5).
+      await db.recoveryCode.update({
+        where: { id: verdict.codeId },
+        data: { failedAttempts: { increment: 1 } },
+      });
+    }
+    if (!verdict.ok) {
+      await burn;
+      return recoveryFailure();
+    }
+    // Égalisation du coût (scrypt réel) avant l'écriture de la transaction.
+    const passwordHash = await hashPassword(data.password);
+    const userId = user!.id;
+    const nextCode = generateRecoveryCode();
+    const updated = await db.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        // Relecture dans la transaction : usage unique garanti contre
+        // deux soumissions simultanées du même code.
+        const live = await tx.recoveryCode.findUnique({
+          where: { userId },
+        });
+        const stillValid =
+          live &&
+          !live.consumedAt &&
+          live.failedAttempts < RECOVERY_MAX_FAILED_ATTEMPTS &&
+          recoveryHashMatches(
+            hashRecoveryCode(normalizeRecoveryCode(data!.code)),
+            live.codeHash,
+          );
+        if (!stillValid) return null;
+        await tx.user.update({
+          where: { id: userId },
+          data: { passwordHash },
+        });
+        // Le mot de passe change : toutes les sessions existantes sont closes.
+        await tx.session.deleteMany({ where: { userId } });
+        const next = await tx.recoveryCode.update({
+          where: { id: live.id },
+          data: {
+            codeHash: nextCode.hash,
+            consumedAt: null,
+            failedAttempts: 0,
+            windowStart: new Date(),
+          },
+        });
+        await tx.activityLog.create({
+          data: {
+            userId,
+            action: "Récupération de compte via code de récupération",
+            entityType: "user",
+            entityId: userId,
+          },
+        });
+        return next;
+      },
+      { timeout: 15000 },
+    );
+    if (!updated) {
+      // Code consommé entre-temps (course) : message générique.
+      await db.loginAttempt.deleteMany({ where: { key } });
+      return recoveryFailure();
+    }
+    await db.loginAttempt.deleteMany({ where: { key } });
+    return {
+      ok: true,
+      message:
+        "Mot de passe mis à jour. Sessions fermées. Notez votre nouveau code : il s’affiche une seule fois.",
+      recoveryCode: nextCode.plain,
+    };
+  } catch (e) {
+    // Aucun secret ni code n'est journalisé.
+    console.error(
+      "[IRONZ recovery] échec générique",
+      e instanceof Error ? e.name : "Unknown",
+    );
+    return recoveryFailure();
+  }
+}
+// Régénération du code par l'administrateur connecté (Paramètres).
+// Le mot de passe courant est exigé : une session volée ne peut pas
+// s'emparer d'un nouveau code sans connaître le mot de passe.
+export async function regenerateRecoveryCode(
+  _previous: Result,
+  form: FormData,
+): Promise<Result> {
+  try {
+    const actor = await requireUser("admin", true);
+    if (!isDesktopDb() && !isPreview())
+      business("Opération disponible uniquement dans l’application locale.");
+    const data = regenerateSchema.parse(Object.fromEntries(form));
+    const full = await db.user.findUnique({ where: { id: actor.id } });
+    const passwordOk = await verifyPassword(data.password, full?.passwordHash || dummyHash());
+    if (!full || !passwordOk)
+      return { ok: false, message: "Mot de passe actuel incorrect." };
+    await ensureRecoverySchema();
+    const recovery = generateRecoveryCode();
+    await atomic(async (tx) => {
+      await tx.recoveryCode.upsert({
+        where: { userId: actor.id },
+        create: { userId: actor.id, codeHash: recovery.hash },
+        update: {
+          codeHash: recovery.hash,
+          consumedAt: null,
+          failedAttempts: 0,
+          windowStart: new Date(),
+        },
+      });
+      await tx.activityLog.create({
+        data: {
+          userId: actor.id,
+          action: "Code de récupération régénéré",
+          entityType: "user",
+          entityId: actor.id,
+        },
+      });
+    });
+    return {
+      ok: true,
+      message:
+        "Nouveau code généré. Notez-le : il s’affiche une seule fois et remplace l’ancien code.",
+      recoveryCode: recovery.plain,
     };
   } catch (e) {
     return failure(e);

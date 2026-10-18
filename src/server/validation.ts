@@ -102,6 +102,24 @@ export const userSchema = z.object({
   password: z.string().min(12, "12 caractères au minimum.").max(128),
   role: z.enum(["ADMIN", "COMMERCIAL", "COMPTABILITE"]),
 });
+export const regenerateSchema = z.object({
+  password: z.string().min(1).max(128),
+});
+export const recoverySchema = z
+  .object({
+    email: z.email("Adresse email invalide.").transform((e) => e.toLowerCase()),
+    code: z.string().trim().min(8, "Code requis.").max(64),
+    password: z.string().min(12, "12 caractères au minimum.").max(128),
+    confirm: z.string().max(128),
+  })
+  .refine((d) => d.password === d.confirm, {
+    message: "Les deux mots de passe ne correspondent pas.",
+    path: ["confirm"],
+  })
+  .refine((d) => d.password.toLowerCase() !== d.email.toLowerCase(), {
+    message: "Le mot de passe ne peut pas être votre email.",
+    path: ["confirm"],
+  });
 export const firstRunSchema = z
   .object({
     company: z.string().trim().min(2, "Le nom de l’entreprise est requis.").max(120),

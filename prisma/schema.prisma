@@ -33,6 +33,7 @@ model User {
   documents    Document[]
   payments     Payment[]
   activities   ActivityLog[]
+  recoveryCode RecoveryCode?
 }
 
 model Session {
@@ -50,6 +51,19 @@ model LoginAttempt {
   key         String   @id @map("_id")
   attempts    Int      @default(0)
   windowStart DateTime @default(now())
+}
+
+// Code de récupération de compte (1.1.2, desktop) : seul le hash SHA-256
+// du code est stocké. Miroir du schéma SQLite pour le typage web.
+model RecoveryCode {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId         String    @unique @db.ObjectId
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash       String    @unique
+  consumedAt     DateTime?
+  failedAttempts Int       @default(0)
+  windowStart    DateTime  @default(now())
+  createdAt      DateTime  @default(now())
 }
 
 model Client {

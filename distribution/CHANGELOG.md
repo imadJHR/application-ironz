@@ -1,5 +1,52 @@
 # CHANGELOG — IRONZ Gestion (desktop)
 
+## 1.1.2 — Récupération hors ligne du compte administrateur
+
+Sécurité et récupération
+- **Code de récupération cryptographique** (16 octets, `crypto.randomBytes`,
+  128 bits d'entropie), affiché en 4 groupes hexadécimaux. Généré au
+  premier démarrage (configuration initiale), affiché **une seule fois**,
+  stocké uniquement sous forme de hash SHA-256 — jamais en clair, jamais
+  journalisé.
+- **Mot de passe oublié** sur la page de connexion : email + code +
+  nouveau mot de passe (12 caractères minimum), validation entièrement
+  côté serveur. Messages génériques (aucune énumération de comptes).
+- **Code à usage unique** : consommé il est définitivement invalide ;
+  après une récupération réussie, le mot de passe est remplacé, toutes
+  les sessions du compte sont fermées, un NOUVEAU code est généré et
+  affiché une seule fois. L'opération est tracée dans le journal
+  d'activités (sans aucun secret).
+- **Régénération depuis Paramètres** (administrateur connecté, mot de
+  passe actuel exigé) : un vol de session ne permet pas de s'emparer
+  d'un nouveau code.
+- **Protections anti-bruteforce** : limiteur glissant 15 min (10 essais
+  par email) + blocage définitif du code après 5 essais erronés ; coût
+  scrypt égalisé sur les échecs (aucun chronométrage possible).
+- **Aucune porte dérobée** : sans code valide, aucune réinitialisation
+  n'est possible, quel que soit l'accès au fichier de base.
+
+Compatibilité
+- **Migration SQLite idempotente au runtime** : la table `RecoveryCode`
+  est ajoutée à la demande aux bases 1.0.0/1.1.0/1.1.1 et aux
+  sauvegardes antérieures restaurées (CREATE TABLE IF NOT EXISTS, AUCUNE
+  modification des tables existantes, données inchangées).
+- Backup & Restore préservés : les bases/sauvegardes contiennent
+  désormais la table du code (hash uniquement) ; une sauvegarde 1.1.1
+  reste restaurable sur une 1.1.2 (la table est recréée au premier
+  usage si absente).
+- Réservé à l'application Desktop : la version Web (MongoDB Atlas) ne
+  propose ni la récupération par code ni la migration.
+
+Validation
+- Typecheck, ESLint, tests unitaires (15, dont 6 dédiés au code de
+  récupération), tests de fumée 26 étapes (setup + code, connexion,
+  code erroné/valide, changement de mot de passe, invalidation des
+  sessions, réutilisation refusée, régénération, anti-bruteforce,
+  sauvegarde/restauration, absence de secrets en clair), monte de
+  version 1.1.1 → 1.1.2 E2E sur base héritée, installation/
+  désinstallation NSIS avec base utilisateur préservée octet pour
+  octet.
+
 ## 1.1.1 — Finalisation officielle
 
 - Bump de version 1.1.0 → 1.1.1 (`package.json`, `package-lock.json`,

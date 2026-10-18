@@ -1,6 +1,6 @@
 # IRONZ Gestion
 
-[⬇️ Télécharger IRONZ Gestion 1.1.1 pour Windows](https://github.com/imadJHR/application-ironz/releases/download/v1.1.1/IRONZ-Gestion-Setup-1.1.1.exe)
+[⬇️ Télécharger IRONZ Gestion 1.1.2 pour Windows](https://github.com/imadJHR/application-ironz/releases/download/v1.1.2/IRONZ-Gestion-Setup-1.1.2.exe)
 
 - Windows 64 bits
 - Installation simple avec NSIS
@@ -15,9 +15,9 @@ serveur externe ne sont nécessaires.
 
 ## Télécharger
 
-> - **Fichier** : `IRONZ-Gestion-Setup-1.1.1.exe` (135,7 Mo, Windows 64 bits)
-> - **SHA-256** : `D3E3F65AA8FB7EB182447CFFCE09AD9E0B9401CA5E2885D627620B5000645D1C`
-> - [Notice d'installation complète](https://github.com/imadJHR/application-ironz/releases/download/v1.1.1/IRONZ-Notice-Installation.txt)
+> - **Fichier** : `IRONZ-Gestion-Setup-1.1.2.exe` (135,8 Mo, Windows 64 bits)
+> - **SHA-256** : `3C13AF5F26852208EFB9154F3DFBC3CA02F3FE99AB1095549BFF6D9B9FBC8549`
+> - [Notice d'installation complète](https://github.com/imadJHR/application-ironz/releases/download/v1.1.2/IRONZ-Notice-Installation.txt)
 
 L'installateur n'est **pas signé numériquement** : Windows SmartScreen peut
 afficher un avertissement au premier lancement. Cliquez sur
@@ -25,8 +25,8 @@ afficher un avertissement au premier lancement. Cliquez sur
 
 ## Installation Windows
 
-1. Téléchargez le fichier `IRONZ-Gestion-Setup-1.1.1.exe` (bouton ci-dessus,
-   ou via la [Release v1.1.1](https://github.com/imadJHR/application-ironz/releases/tag/v1.1.1)).
+1. Téléchargez le fichier `IRONZ-Gestion-Setup-1.1.2.exe` (bouton ci-dessus,
+   ou via la [Release v1.1.2](https://github.com/imadJHR/application-ironz/releases/tag/v1.1.2)).
 2. Lancez l'installateur.
 3. Suivez les étapes d'installation de l'assistant NSIS.
 4. Ouvrez **IRONZ Gestion** depuis le menu Démarrer ou le raccourci du bureau.
@@ -68,14 +68,14 @@ données et vos comptes.
 
 ## Liens
 
-- [GitHub Release v1.1.1](https://github.com/imadJHR/application-ironz/releases/tag/v1.1.1)
-- [Notice d'installation](https://github.com/imadJHR/application-ironz/releases/download/v1.1.1/IRONZ-Notice-Installation.txt)
+- [GitHub Release v1.1.2](https://github.com/imadJHR/application-ironz/releases/tag/v1.1.2)
+- [Notice d'installation](https://github.com/imadJHR/application-ironz/releases/download/v1.1.2/IRONZ-Notice-Installation.txt)
 - [CHANGELOG](distribution/CHANGELOG.md)
 
 ## Pour les développeurs
 
 - [CHANGELOG détaillé](distribution/CHANGELOG.md)
 - [Documentation de l'ancienne architecture Web (Next.js + MongoDB Atlas)](docs/ARCHITECTURE-WEB-MONGODB.md) — conservée pour référence technique.
-- [Rapports de session de livraison](distribution/SESSION-1.1.1-RAPPORT.md)
+- [Rapports de session de livraison](distribution/SESSION-1.1.2-RAPPORT.md)
 
 Application Desktop : Electron, SQLite, Prisma, Next.js. Application Web (historique) : Next.js App Router, MongoDB Atlas, Prisma 6. Consultez [docs/ARCHITECTURE-WEB-MONGODB.md](docs/ARCHITECTURE-WEB-MONGODB.md) pour l'architecture web complète.
