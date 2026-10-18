@@ -1,5 +1,22 @@
 # CHANGELOG — IRONZ Gestion (desktop)
 
+## 0.1.0 — Première version officielle (renumérotation)
+
+Contenu identique à la version d'essai 1.1.2 (aucun changement
+fonctionnel, aucune modification métier) :
+- Gestion 100 % hors ligne : clients, produits, devis, factures,
+  paiements, PDF, sauvegarde/restauration SQLite.
+- Configuration initiale sans identifiant livré (First Run Setup).
+- Récupération hors ligne du compte administrateur (code 128 bits à
+  usage unique, stocké hashé, anti-bruteforce, régénération protégée).
+- Migration runtime idempotente pour toutes les bases d'essai
+  antérieures (1.0.0 → 1.1.2).
+
+Renumérotation officielle : la numérotation 1.x n'a jamais été
+distribuée à un utilisateur final ; le premier cycle public démarre à
+**0.1.0**. Les versions d'essai internes (1.0.0, 1.1.0, 1.1.1, 1.1.2)
+restent consultables dans l'historique Git et les tags.
+
 ## 1.1.2 — Récupération hors ligne du compte administrateur
 
 Sécurité et récupération

@@ -341,7 +341,7 @@ try {
 
   await page.goto(base + "/");
   await page.screenshot({ path: "desktop/smoke-dashboard.png" });
-  console.log("FUMÉE DESKTOP 1.1.2 : TOUT PASSE");
+  console.log("FUMÉE DESKTOP 0.1.0 : TOUT PASSE");
 } finally {
   await browser.close();
 }

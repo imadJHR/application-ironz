@@ -1,11 +1,11 @@
   ┌─────────────────────────────────────────────────────────────┐
-  │  IRONZ GESTION — Version 1.1.2 (Windows, monoposte)         │
+  │  IRONZ GESTION — Version 0.1.0 (Windows, monoposte)         │
   │  Notice d'installation et de sauvegarde des données         │
   └─────────────────────────────────────────────────────────────┘
 
 1. INSTALLATION
 ---------------
-• Double-cliquez sur : IRONZ-Gestion-Setup-1.1.2.exe (≈ 136 Mo)
+• Double-cliquez sur : IRONZ-Gestion-Setup-0.1.0.exe (≈ 136 Mo)
 • Aucun droit administrateur n'est nécessaire (installation par
   utilisateur).
 • Choisissez l'emplacement d'installation (par défaut :
@@ -39,9 +39,9 @@
   être réinitialisé.
 • Pour créer d'autres comptes ensuite : "Utilisateurs" (admin).
 
-3. MISE À JOUR DEPUIS UNE VERSION ANTÉRIEURE (1.0.0 / 1.1.0 / 1.1.1)
--------------------------------------------------------------------
-• Installez simplement la 1.1.2 par-dessus : vos données et votre
+3. MISE À JOUR DEPUIS UNE VERSION ANTÉRIEURE (essai interne 1.0.0 à 1.1.2)
+--------------------------------------------------------------------------
+• Installez simplement la 0.1.0 par-dessus : vos données et votre
   compte existant sont conservés, aucune reconfiguration n'est
   demandée.
 • L'ancien compte administrateur fonctionne toujours.
@@ -120,4 +120,4 @@
 • Si l'application ne démarre pas : consultez le journal
   AppData\Roaming\ironz-gestion\launch.log
 
-── IRONZ — Document interne de livraison v1.1.2 ──
+── IRONZ — Document interne de livraison v0.1.0 ──
