@@ -1,5 +1,5 @@
 import "server-only";
-import { db, isPreview } from "./db";
+import { db, isPreview, insensitive } from "./db";
 import { Prisma } from "@/generated/prisma";
 import Decimal from "decimal.js";
 import { requireUser } from "./auth";
@@ -55,7 +55,7 @@ export async function clients(filters: Filters = {}) {
     ...(filters.q
       ? {
           OR: ["name", "contact", "phone", "ice", "email"].map((field) => ({
-            [field]: { contains: filters.q, mode: "insensitive" },
+            [field]: { contains: filters.q, ...insensitive() },
           })),
         }
       : {}),
@@ -84,7 +84,7 @@ export async function products(filters: Filters = {}) {
     ...(filters.q
       ? {
           OR: ["name", "reference", "category"].map((field) => ({
-            [field]: { contains: filters.q, mode: "insensitive" },
+            [field]: { contains: filters.q, ...insensitive() },
           })),
         }
       : {}),
@@ -183,9 +183,9 @@ export async function documents(kind: Kind, filters: Filters = {}) {
   const search: Prisma.DocumentWhereInput = filters.q
     ? {
         OR: [
-          { number: { contains: filters.q, mode: "insensitive" } },
-          { client: { name: { contains: filters.q, mode: "insensitive" } } },
-          { source: { number: { contains: filters.q, mode: "insensitive" } } },
+          { number: { contains: filters.q, ...insensitive() } },
+          { client: { name: { contains: filters.q, ...insensitive() } } },
+          { source: { number: { contains: filters.q, ...insensitive() } } },
         ],
       }
     : {};
@@ -378,10 +378,10 @@ export async function globalSearch(q: string) {
     db.client.findMany({
       where: {
         OR: [
-          { name: { contains: q, mode: "insensitive" } },
-          { ice: { contains: q, mode: "insensitive" } },
-          { contact: { contains: q, mode: "insensitive" } },
-          { phone: { contains: q, mode: "insensitive" } },
+          { name: { contains: q, ...insensitive() } },
+          { ice: { contains: q, ...insensitive() } },
+          { contact: { contains: q, ...insensitive() } },
+          { phone: { contains: q, ...insensitive() } },
         ],
       },
       take: 20,
@@ -389,8 +389,8 @@ export async function globalSearch(q: string) {
     db.document.findMany({
       where: {
         OR: [
-          { number: { contains: q, mode: "insensitive" } },
-          { client: { name: { contains: q, mode: "insensitive" } } },
+          { number: { contains: q, ...insensitive() } },
+          { client: { name: { contains: q, ...insensitive() } } },
         ],
       },
       take: 30,
@@ -399,8 +399,8 @@ export async function globalSearch(q: string) {
     db.product.findMany({
       where: {
         OR: [
-          { name: { contains: q, mode: "insensitive" } },
-          { reference: { contains: q, mode: "insensitive" } },
+          { name: { contains: q, ...insensitive() } },
+          { reference: { contains: q, ...insensitive() } },
         ],
       },
       take: 20,

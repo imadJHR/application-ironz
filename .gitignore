@@ -8,3 +8,14 @@ src/generated/prisma/
 test-results/
 playwright-report/
 .local/
+# Desktop (.exe) — artefacts locaux de test, jamais commités
+src/generated/prisma-desktop/
+desktop/dist/
+desktop/pack/
+desktop/template/
+desktop/.env.desktop
+desktop/.mongo-backup/
+desktop/*.log
+desktop/smoke-*.png
+*.db
+*.db-journal

@@ -126,7 +126,11 @@ export async function login(
     await db.loginAttempt.deleteMany({ where: { key } });
     (await cookies()).set("ironz_session", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      // Sur desktop (.exe, http://127.0.0.1 en local), un cookie Secure serait
+      // rejeté : on le réserve au web HTTPS.
+      secure:
+        process.env.NODE_ENV === "production" &&
+        process.env.IRONZ_SQLITE !== "1",
       sameSite: "lax",
       expires: expiresAt,
       path: "/",

@@ -11,6 +11,7 @@ export default defineConfig([
     "test-results/**",
     ".local/**",
     "playwright-report/**",
-    "src/generated/prisma/**",
+    "src/generated/**",
+    "desktop/**",
   ]),
 ]);

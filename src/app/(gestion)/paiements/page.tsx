@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { db, isPreview } from "@/server/db";
+import { db, isPreview, insensitive } from "@/server/db";
 import { requireUser, allowed } from "@/server/auth";
 import { pageNumber, serialize, type Filters } from "@/server/queries";
 import {
@@ -31,12 +31,12 @@ export default async function Payments({
     ...(filters.q
       ? {
           OR: [
-            { number: { contains: filters.q, mode: "insensitive" } },
-            { reference: { contains: filters.q, mode: "insensitive" } },
+            { number: { contains: filters.q, ...insensitive() } },
+            { reference: { contains: filters.q, ...insensitive() } },
             {
-              invoice: { number: { contains: filters.q, mode: "insensitive" } },
+              invoice: { number: { contains: filters.q, ...insensitive() } },
             },
-            { client: { name: { contains: filters.q, mode: "insensitive" } } },
+            { client: { name: { contains: filters.q, ...insensitive() } } },
           ],
         }
       : {}),

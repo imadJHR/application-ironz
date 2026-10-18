@@ -1,0 +1,33 @@
+{
+  "appId": "ma.ironz.gestion",
+  "productName": "IRONZ Gestion",
+  "directories": {
+    "app": "desktop/pack",
+    "output": "desktop/dist",
+    "buildResources": "desktop"
+  },
+  "files": ["main.cjs", "package.json", "standalone/**"],
+  "asar": true,
+  "asarUnpack": ["standalone/node_modules/@img/**"],
+  "compression": "normal",
+  "extraResources": [
+    { "from": "desktop/template/ironz.db", "to": "ironz-template.db" },
+    { "from": "desktop/template/prisma-engine.node", "to": "prisma-engine.node" }
+  ],
+  "win": {
+    "target": [{ "target": "nsis", "arch": ["x64"] }],
+    "icon": "icon.ico"
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "IRONZ Gestion",
+    "installerIcon": "icon.ico",
+    "uninstallerIcon": "icon.ico",
+    "installerHeaderIcon": "icon.ico",
+    "artifactName": "IRONZ-Gestion-Setup-${version}.exe"
+  }
+}
