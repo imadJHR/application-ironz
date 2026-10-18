@@ -1,9 +1,11 @@
-// Orchestre la construction du .exe de TEST (portable, mono-poste, offline).
+// Orchestre la construction de l’installeur (mono-poste, offline).
 // Usage : node desktop/build.mjs
 //  1. génère le client Prisma SQLite
-//  2. crée + seed la base template (desktop/template/ironz.db)
+//  2. crée la base template vierge (desktop/template/ironz.db) :
+//     aucun utilisateur, aucune donnée — l’administrateur est créé
+//     au premier démarrage via la page /premiere-installation
 //  3. build Next en mode standalone desktop
-//  4. assemble desktop/pack + package avec electron-builder (portable .exe)
+//  4. assemble desktop/pack + package avec electron-builder (installeur NSIS)
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -23,15 +25,6 @@ function run(cmd, args, env = {}) {
   if (r.status !== 0) throw new Error("Échec : " + cmd + " " + args.join(" "));
 }
 
-function readDotEnv(file) {
-  const out = {};
-  for (const line of fs.readFileSync(file, "utf8").split("\n")) {
-    const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/);
-    if (m) out[m[1]] = m[2].replace(/^["']|["']$/g, "");
-  }
-  return out;
-}
-
 function copyDir(src, dest) {
   fs.mkdirSync(dest, { recursive: true });
   for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
@@ -42,19 +35,10 @@ function copyDir(src, dest) {
   }
 }
 
-// 0. Identifiants de test.
-const desktopEnv = readDotEnv(path.join(root, "desktop", ".env.desktop"));
-if (
-  !desktopEnv.ADMIN_EMAIL ||
-  !desktopEnv.ADMIN_PASSWORD ||
-  desktopEnv.ADMIN_PASSWORD.length < 12
-)
-  throw new Error("desktop/.env.desktop incomplet.");
-
 // 1. Client Prisma SQLite.
 run("npx", ["prisma", "generate", "--schema", "prisma/schema.sqlite.prisma"]);
 
-// 2. Base template vierge + seed admin de test.
+// 2. Base template 100 % vierge (aucun identifiant par défaut).
 const templateDir = path.join(root, "desktop", "template");
 fs.rmSync(templateDir, { recursive: true, force: true });
 fs.mkdirSync(templateDir, { recursive: true });
@@ -65,12 +49,6 @@ run(
   ["prisma", "db", "push", "--schema", "prisma/schema.sqlite.prisma", "--skip-generate"],
   { DATABASE_URL: templateUrl },
 );
-run("npx", ["tsx", "desktop/seed.ts"], {
-  DATABASE_URL: templateUrl,
-  ADMIN_EMAIL: desktopEnv.ADMIN_EMAIL,
-  ADMIN_PASSWORD: desktopEnv.ADMIN_PASSWORD,
-  ADMIN_NAME: desktopEnv.ADMIN_NAME || "Administrateur IRONZ",
-});
 
 // 3. Moteur Prisma embarqué (utilisé via PRISMA_QUERY_ENGINE_LIBRARY).
 const engineCandidates = [];
@@ -183,4 +161,4 @@ run("npx", [
 ]);
 
 console.log("\n[desktop] Terminé : desktop/dist/IRONZ-Gestion-Setup-*.exe");
-console.log("[desktop] Compte administrateur initial : " + desktopEnv.ADMIN_EMAIL);
+console.log("[desktop] Aucun identifiant par défaut : compte admin créé au premier lancement.");

@@ -1,0 +1,91 @@
+  ┌─────────────────────────────────────────────────────────────┐
+  │  IRONZ GESTION — Version 1.1.1 (Windows, monoposte)         │
+  │  Notice d'installation et de sauvegarde des données         │
+  └─────────────────────────────────────────────────────────────┘
+
+1. INSTALLATION
+---------------
+• Double-cliquez sur : IRONZ-Gestion-Setup-1.1.1.exe (≈ 136 Mo)
+• Aucun droit administrateur n'est nécessaire (installation par
+  utilisateur).
+• Choisissez l'emplacement d'installation (par défaut :
+  C:\Users\<vous>\AppData\Local\Programs\IRONZ Gestion).
+• Laissez les cases "raccourcis" cochées (Bureau + Menu Démarrer).
+• L'installation décompresse l'application et peut durer 1 à 3
+  minutes selon l'antivirus : c'est normal. La fenêtre peut sembler
+  figée vers 70 % pendant la phase d'extration — laissez-la se
+  terminer.
+• NOTE : l'installeur n'est pas signé numériquement ; si Windows
+  affiche "Windows a protégé votre ordinateur", cliquez sur
+  "Informations complémentaires" puis "Exécuter quand même".
+
+2. PREMIER LANCEMENT (nouvelle installation)
+--------------------------------------------
+• L'application demande une configuration unique :
+    - nom de votre entreprise ;
+    - nom de l'administrateur ;
+    - adresse email administrateur ;
+    - mot de passe de 12 caractères minimum (confirmé deux fois).
+• Ce compte administrateur est créé immédiatement et reste le vôtre :
+  AUCUN identifiant "standard" n'est livré avec l'application.
+• Le mot de passe est stocké chiffré (scrypt renforcé) dans la base
+  locale, jamais en clair.
+• Pour créer d'autres comptes ensuite : "Utilisateurs" (admin).
+
+3. MISE À JOUR DEPUIS LA VERSION 1.0.0
+--------------------------------------
+• Installez simplement la 1.1.1 par-dessus : vos données et votre
+  compte existant sont conservés, aucune reconfiguration n'est
+  demandée.
+• (L'ancien compte administrateur créé lors de votre première
+  installation de la 1.0.0 fonctionne toujours ; connectez-vous puis
+  changez le mot de passe dans "Paramètres" ▸ "Compte" pour finaliser
+  la mise en sécurité de votre installation.)
+
+4. EMPLOI
+---------
+• Application 100 % hors ligne (offline) : tout fonctionne sur le
+  poste, sans serveur ni connexion Internet.
+• Fonctionnalités : clients, produits, devis, factures, paiements,
+  génération de PDF, paramètres de l'entreprise.
+
+5. SAUVEGARDE ET RESTAURATION (nouveau, intégré)
+-----------------------------------------------
+• Deux protections complémentaires :
+  A) Dans l'application (recommandé)
+     "Paramètres" ▸ section "Sauvegarde et restauration" :
+       - "Sauvegarder mes données" : crée une sauvegarde vérifiée
+         (intégrité + schéma contrôlés), la télécharge vers
+         l'emplacement que vous choisissez (clé USB, disque externe)
+         et en garde une copie datée sur le poste ;
+       - "Restaurer…" : recharge un fichier de sauvegarde .db.
+         La base actuelle est automatiquement conservée comme
+         "sauvegarde de sécurité datée" avant le remplacement.
+         Après restauration, reconnectez-vous avec les identifiants
+         présents DANS la sauvegarde restaurée.
+  B) Manuellement (application fermée)
+     Toutes les données sont dans une base SQLite unique :
+       C:\Users\<vous>\AppData\Roaming\ironz-gestion\ironz.db
+     1) Fermez IRONZ Gestion.
+     2) Copiez le fichier "ironz.db" ci-dessus sur une clé USB,
+        un disque externe ou un dossier sécurisé.
+     3) Renommez la copie : ironz-AAAA-MM-JJ.db
+• Fréquence recommandée : une sauvegarde par semaine, plus une
+  sauvegarde avant chaque mise à jour de l'application.
+
+6. DÉSINSTALLATION / MISE À JOUR
+--------------------------------
+• Windows ▸ Paramètres ▸ Applications ▸ IRONZ Gestion ▸ Désinstaller,
+  ou "Uninstall IRONZ Gestion.exe" dans le dossier d'installation.
+• IMPORTANT : la désinstallation NE SUPPRIME PAS vos données
+  (ironz.db reste dans AppData\Roaming\ironz-gestion). Elles sont
+  reprises telles quelles lors d'une réinstallation.
+
+7. SUPPORT
+----------
+• Ne supprimez pas, ne renommez pas et ne déplacez pas "ironz.db"
+  pendant que l'application fonctionne.
+• Si l'application ne démarre pas : consultez le journal
+  AppData\Roaming\ironz-gestion\launch.log
+
+── IRONZ — Document interne de livraison v1.1.1 ──

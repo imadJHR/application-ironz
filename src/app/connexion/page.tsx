@@ -1,7 +1,22 @@
 import { Brand } from "@/components/brand";
 import { LoginForm } from "@/components/login-form";
 import { ShieldCheck } from "lucide-react";
-export default function Login() {
+import { redirect } from "next/navigation";
+import { db, isPreview, isDesktopDb } from "@/server/db";
+export const dynamic = "force-dynamic";
+export default async function Login() {
+  // Desktop : si aucun administrateur n'existe encore (installation fraîche),
+  // la connexion n'a aucun sens -> Afficher directement la configuration
+  // initiale. redirect() lève une exception : il doit rester hors du try.
+  if (!isPreview() && isDesktopDb()) {
+    let emptyAdmins = false;
+    try {
+      emptyAdmins = (await db.user.count({ where: { role: "ADMIN" } })) === 0;
+    } catch {
+      // Base indisponible : afficher la connexion normale.
+    }
+    if (emptyAdmins) redirect("/premiere-installation");
+  }
   return (
     <main className="login-page">
       <section className="login-story">

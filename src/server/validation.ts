@@ -102,3 +102,19 @@ export const userSchema = z.object({
   password: z.string().min(12, "12 caractères au minimum.").max(128),
   role: z.enum(["ADMIN", "COMMERCIAL", "COMPTABILITE"]),
 });
+export const firstRunSchema = z
+  .object({
+    company: z.string().trim().min(2, "Le nom de l’entreprise est requis.").max(120),
+    adminName: z.string().trim().min(2, "Le nom de l’administrateur est requis.").max(100),
+    email: z.email("Adresse email invalide.").transform((e) => e.toLowerCase()),
+    password: z.string().min(12, "12 caractères au minimum.").max(128),
+    confirm: z.string().max(128),
+  })
+  .refine((d) => d.password === d.confirm, {
+    message: "Les deux mots de passe ne correspondent pas.",
+    path: ["confirm"],
+  })
+  .refine((d) => d.password.toLowerCase() !== d.email.toLowerCase(), {
+    message: "Le mot de passe ne peut pas être votre email.",
+    path: ["confirm"],
+  });

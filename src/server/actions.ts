@@ -6,7 +6,14 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { Prisma } from "@/generated/prisma";
 import Decimal from "decimal.js";
 import { z } from "zod";
-import { db, atomic, nextNumber, jsonSnapshot } from "./db";
+import {
+  db,
+  atomic,
+  nextNumber,
+  jsonSnapshot,
+  isDesktopDb,
+  isPreview,
+} from "./db";
 import { requireUser, requireDocumentWrite, sessionHash, appOrigins } from "./auth";
 import { verifyPassword, hashPassword } from "./password";
 import {
@@ -24,6 +31,7 @@ import {
   paymentSchema,
   settingsSchema,
   userSchema,
+  firstRunSchema,
 } from "./validation";
 export type Result = { ok: boolean; message: string; id?: string };
 function failure(error: unknown): Result {
@@ -150,6 +158,59 @@ export async function logout() {
     await db.session.deleteMany({ where: { tokenHash: sessionHash(token) } });
   jar.delete("ironz_session");
   redirect("/connexion");
+}
+// Configuration initiale (premier démarrage) : accessible uniquement quand
+// aucun administrateur n'existe. La vérification et la création ont lieu
+// dans une vraie transaction SQLite pour être atomiques et protégées
+// contre les accès concurrents (deux soumissions simultanées).
+export async function configureFirstAdmin(
+  _previous: Result,
+  form: FormData,
+): Promise<Result> {
+  try {
+    // Réservé à l'application locale (desktop) et à l'aperçu :
+    // la version web (Atlas) ne propose jamais de configuration initiale.
+    if (!isDesktopDb() && !isPreview())
+      business("Opération disponible uniquement dans l’application locale.");
+    const data = firstRunSchema.parse(Object.fromEntries(form));
+    const passwordHash = await hashPassword(data.password);
+    await db.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        const admins = await tx.user.count({ where: { role: "ADMIN" } });
+        if (admins > 0)
+          business(
+            "La configuration initiale est déjà terminée. Connectez-vous.",
+          );
+        await tx.companySettings.upsert({
+          where: { id: "ironz" },
+          create: { id: "ironz", name: data.company },
+          update: { name: data.company },
+        });
+        const admin = await tx.user.create({
+          data: {
+            email: data.email,
+            name: data.adminName,
+            role: "ADMIN",
+            passwordHash,
+          },
+        });
+        await tx.activityLog.create({
+          data: {
+            userId: admin.id,
+            action: "Configuration initiale (premier administrateur)",
+            entityType: "user",
+            entityId: admin.id,
+            detail: data.company,
+          },
+        });
+      },
+      { timeout: 15000 },
+    );
+    refreshed();
+    return { ok: true, message: "Administrateur créé. Vous pouvez vous connecter." };
+  } catch (e) {
+    return failure(e);
+  }
 }
 export async function saveClient(input: unknown, id?: string): Promise<Result> {
   try {
