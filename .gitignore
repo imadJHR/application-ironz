@@ -8,6 +8,10 @@ src/generated/prisma/
 test-results/
 playwright-report/
 .local/
+# Fichiers des assistants IA : conservés localement, jamais publiés
+.claude/
+AGENTS.md
+IDEA.md
 # Desktop (.exe) — artefacts locaux de test, jamais commités
 src/generated/prisma-desktop/
 desktop/dist/
