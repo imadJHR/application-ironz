@@ -1,4 +1,4 @@
-// Test e2e 0.1.2 : section Paramètres ▸ Mises à jour.
+// Test e2e : section Paramètres ▸ Mises à jour (version dynamique).
 // Scénarios : version à jour, nouvelle version, lien GitHub invalide,
 // absence d'Internet, erreur réseau, réponse illisible, zéro release.
 // Aucune donnée commerciale ne doit quitter le poste, la base ne doit
@@ -220,7 +220,7 @@ try {
     "OK protection : " + mock.counters.get + " GET émis, aucune écriture base, aucune donnée transmise",
   );
 
-  console.log("MISES A JOUR 0.1.2 : TOUT PASSE");
+  console.log("MISES A JOUR : TOUT PASSE");
 } finally {
   if (mock) mock.close();
   await browser.close();

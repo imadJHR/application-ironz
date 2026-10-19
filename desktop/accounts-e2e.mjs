@@ -1,4 +1,4 @@
-// Test e2e 0.1.1 : base multi-comptes héritée -> panneau de conflit ->
+// Test e2e : base multi-comptes héritée -> panneau de conflit ->
 // fusion validée par le mot de passe admin -> réaffectation intégrale ->
 // compte hérité supprimé -> ses identifiants refusés à la connexion.
 import { chromium, expect } from "@playwright/test";
@@ -134,7 +134,7 @@ try {
   ).toContainText(/identifiants|incorrect/i, { timeout: 30000 });
   console.log("OK compte fusionné : identifiants définitivement invalides");
 
-  console.log("COMPTE UNIQUE 0.1.1 : TOUT PASSE");
+  console.log("COMPTE UNIQUE : TOUT PASSE");
 } finally {
   await browser.close();
   await db.$disconnect().catch(() => {});

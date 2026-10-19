@@ -1,61 +1,44 @@
 # CHANGELOG — IRONZ Gestion (desktop)
 
-## 0.1.2 — Mises à jour
-
-Nouvelle section "Paramètres" ▸ "Mises à jour".
-
-- Affichage de la version installée et bouton "Rechercher des mises
-  à jour" (vérification volontaire, jamais automatique).
-- Consultation des versions publiées sur le dépôt GitHub officiel :
-  numéro de version, date, nouveautés et lien direct vers
-  l'installateur Windows dans la Release officielle.
-- Aucune installation automatique : le téléchargement s'ouvre dans le
-  navigateur, l'installateur reste à exécuter manuellement.
-- Sécurité : GET public uniquement (aucune donnée locale transmise),
-  liens limités au dépôt officiel, aucune exécution de fichier.
-- Hors ligne : message "Connexion Internet indisponible", l'application
-  reste 100 % fonctionnelle.
-
-## 0.1.1 — Compte unique
-
-L'application devient monoposte stricte : un seul compte
-administrateur par installation.
-
-- Suppression de la gestion des utilisateurs et de la création de
-  comptes (le compte administrateur est le seul compte de
-  l'installation, créé à la première configuration).
-- Les comptes hérités des essais antérieurs (anciens comptes
-  commercial / comptabilité) ne peuvent plus se connecter. Ils
-  apparaissent dans "Paramètres" ▸ "Comptes hérités détectés" : rien
-  n'est supprimé automatiquement, l'administrateur décide. La fusion
-  rattache documents, paiements et journal à son compte, confirmée par
-  son mot de passe actuel — aucune donnée commerciale n'est perdue.
-
 ## 0.1.0 — Première version publique
 
 Première version publique de l'application Desktop IRONZ Gestion
 (Windows, monoposte, 100 % hors ligne).
 
 Fonctionnalités
-- Gestion des clients (fiches complètes, recherche, édition).
+- Gestion des clients (fiches complètes, recherche, édition, archivage).
 - Catalogue de produits et de services.
 - Devis, commandes, bons de livraison et factures, avec documents PDF
-  générés localement.
-- Suivi des paiements (encaissements, groupes de factures).
+  générés localement (formats A4 avec logo, mentions et pagination).
+- Suivi des paiements (encaissements, groupes de factures, contrôles
+  de solde en transaction).
 - Recherche globale depuis l'en-tête de l'application.
-- Gestion des utilisateurs (comptes de votre entreprise).
-- Première configuration guidée : création du compte administrateur
-  à la première ouverture (aucun identifiant livré par défaut).
-- Sauvegarde et restauration SQLite intégrées, avec contrôle
-  d'intégrité et copie de sécurité datée avant restauration.
+- Premier lancement guidé : configuration unique du compte
+  administrateur (aucun identifiant livré par défaut). L'application
+  est monoposte : ce compte est le seul de l'installation.
+- Code de récupération 128 bits affiché une seule fois, régénérable
+  depuis les paramètres (mot de passe actuel exigé).
+- Comptes hérités d'essais antérieurs : signalés dans "Paramètres" ▸
+  "Comptes hérités détectés" — fusion décidée par l'administrateur
+  (réaffectation de l'historique, mot de passe requis), jamais
+  automatique.
+- Section "Paramètres" ▸ "Mises à jour" : vérification volontaire des
+  nouvelles versions sur le dépôt GitHub officiel (version installée,
+  nouveautés, lien direct de l'installateur). Aucune installation
+  automatique, aucune donnée locale transmise, hors ligne propre.
+- Sauvegarde et restauration SQLite intégrées (contrôle d'intégrité,
+  copie de sécurité datée avant restauration).
+- Journaux de diagnostic conservés dans le dossier de données
+  (launch.log, server-err.log, server-out.log).
 
 Sécurité
 - Mot de passe administrateur personnel (12 caractères minimum,
-  chiffrage scrypt, jamais en clair dans la base).
-- Code de récupération 128 bits affiché une seule fois, conservé
-  uniquement sous forme de hachage, à usage unique.
-- Régénération du code possible depuis les paramètres (mot de passe
-  actuel exigé) et protections anti-bruteforce côté application.
+  chiffrage scrypt renforcé, jamais en clair dans la base).
+- Les comptes non administrateur des anciennes installations ne
+  peuvent plus se connecter (refus générique, anti-énumération).
+- Vérification des mises à jour : GET public uniquement, liens
+  filtrés vers le dépôt officiel, aucun fichier téléchargé exécuté.
+- Protections anti-bruteforce (fenêtre glissante) côté application.
 
 Détails techniques
 - Installation NSIS utilisateur (aucun droit administrateur requis).

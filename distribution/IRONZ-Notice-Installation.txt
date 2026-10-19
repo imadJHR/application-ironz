@@ -1,11 +1,11 @@
   ┌─────────────────────────────────────────────────────────────┐
-  │  IRONZ GESTION — Version 0.1.2 (Windows, monoposte)         │
+  │  IRONZ GESTION — Version 0.1.0 (Windows, monoposte)         │
   │  Notice d'installation et de sauvegarde des données         │
   └─────────────────────────────────────────────────────────────┘
 
 1. INSTALLATION
 ---------------
-• Double-cliquez sur : IRONZ-Gestion-Setup-0.1.2.exe (135,8 Mo)
+• Double-cliquez sur : IRONZ-Gestion-Setup-0.1.0.exe (135,8 Mo)
 • Aucun droit administrateur n'est nécessaire (installation par
   utilisateur).
 • Choisissez l'emplacement d'installation (par défaut :
@@ -30,6 +30,10 @@
   AUCUN identifiant "standard" n'est livré avec l'application.
   IRONZ Gestion est monoposte : c'est le seul compte de
   l'installation, avec un accès complet.
+• Si la base contient des comptes hérités d'essais antérieurs, ils ne
+  peuvent jamais se connecter ; "Paramètres" ▸ "Comptes hérités
+  détectés" propose leur fusion vers votre compte (décision
+  personnelle, mot de passe requis, aucune suppression automatique).
 • Le mot de passe est stocké chiffré (scrypt renforcé) dans la base
   locale, jamais en clair.
 • APRES la configuration, un CODE DE RÉCUPÉRATION s'affiche une seule
@@ -127,4 +131,4 @@
 • Sans Internet : "Connexion Internet indisponible" — toutes les
   fonctions continuent de fonctionner hors ligne.
 
-── IRONZ — Notice de livraison v0.1.2 ──
+── IRONZ — Notice de livraison v0.1.0 ──

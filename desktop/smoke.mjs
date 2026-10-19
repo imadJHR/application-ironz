@@ -1,4 +1,4 @@
-﻿// Test de fumée 0.1.1 (serveur standalone + SQLite, base vierge).
+﻿// Test de fumée 0.1.0 (serveur standalone + SQLite, base vierge).
 // Usage : node desktop/smoke.mjs  (serveur attendu sur http://127.0.0.1:4380)
 // Tout le flux part de la configuration initiale : aucun identifiant
 // par défaut n'existe dans l'application.
@@ -15,6 +15,7 @@ const password = "Fume+" + randomBytes(12).toString("base64url") + "!1";
 const newPassword = "Fume2+" + randomBytes(12).toString("base64url") + "!2";
 const backupFile = "desktop/smoke-sauvegarde.db";
 const updateState = "C:/Users/imadj/AppData/Local/Temp/opencode/updates-mock-state.json";
+const appVersion = JSON.parse(fs.readFileSync("package.json", "utf8")).version;
 
 const browser = await chromium.launch();
 const page = await browser.newPage();
@@ -343,7 +344,7 @@ try {
 
   await page.goto(base + "/");
   await page.screenshot({ path: "desktop/smoke-dashboard.png" });
-  // 27. Monoposte 0.1.1 : reconnexion puis vérifications compte unique.
+  // 27. Monoposte 0.1.0 : reconnexion puis vérifications compte unique.
   await page.getByLabel("Email professionnel").fill(email);
   await page.getByLabel("Mot de passe", { exact: true }).fill(newPassword);
   await page.getByRole("button", { name: "Se connecter", exact: true }).click();
@@ -374,10 +375,10 @@ try {
       JSON.stringify({
         mode: "release",
         release: {
-          tag_name: "v0.1.2",
-          name: "IRONZ Gestion 0.1.2",
+          tag_name: "v" + appVersion,
+          name: "IRONZ Gestion " + appVersion,
           html_url:
-            "https://github.com/imadJHR/application-ironz/releases/tag/v0.1.2",
+            "https://github.com/imadJHR/application-ironz/releases/tag/v" + appVersion + "",
           published_at: "2026-10-19T00:00:00Z",
           body: "Version actuelle",
           assets: [],
@@ -388,7 +389,7 @@ try {
     await page.goto(base + "/parametres");
     await page.waitForLoadState("load", { timeout: 90000 });
     await expect(
-      page.getByText("Version installée : 0.1.2", { exact: false }),
+      page.getByText("Version installée : " + appVersion, { exact: false }),
     ).toBeVisible({ timeout: 60000 });
     await page
       .getByRole("button", { name: "Rechercher des mises à jour" })
@@ -410,7 +411,7 @@ try {
     fs.rmSync(updateState, { force: true });
   }
 
-  console.log("FUMÉE DESKTOP 0.1.2 : TOUT PASSE");
+  console.log("FUMÉE DESKTOP 0.1.0 : TOUT PASSE");
 } finally {
   await browser.close();
 }
