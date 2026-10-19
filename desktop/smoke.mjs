@@ -5,6 +5,7 @@
 import { chromium, expect } from "@playwright/test";
 import { randomBytes } from "node:crypto";
 import fs from "node:fs";
+import { startUpdateMock } from "./updates-mock.mjs";
 
 const base = "http://127.0.0.1:4380";
 const company = "IRONZ Steel Test";
@@ -13,6 +14,7 @@ const email = "smoke-" + randomBytes(4).toString("hex") + "@ironz.test";
 const password = "Fume+" + randomBytes(12).toString("base64url") + "!1";
 const newPassword = "Fume2+" + randomBytes(12).toString("base64url") + "!2";
 const backupFile = "desktop/smoke-sauvegarde.db";
+const updateState = "C:/Users/imadj/AppData/Local/Temp/opencode/updates-mock-state.json";
 
 const browser = await chromium.launch();
 const page = await browser.newPage();
@@ -362,7 +364,53 @@ try {
   }
   console.log("OK Paramètres sans aucune trace de gestion multi-comptes");
 
-  console.log("FUMÉE DESKTOP 0.1.1 : TOUT PASSE");
+  // 28. Section Mises à jour : version affichée, recherche à jour puis
+  //     hors ligne via le mock local.
+  fs.rmSync(updateState, { force: true });
+  const mock = await startUpdateMock(updateState);
+  try {
+    fs.writeFileSync(
+      updateState,
+      JSON.stringify({
+        mode: "release",
+        release: {
+          tag_name: "v0.1.2",
+          name: "IRONZ Gestion 0.1.2",
+          html_url:
+            "https://github.com/imadJHR/application-ironz/releases/tag/v0.1.2",
+          published_at: "2026-10-19T00:00:00Z",
+          body: "Version actuelle",
+          assets: [],
+        },
+      }),
+      "utf8",
+    );
+    await page.goto(base + "/parametres");
+    await page.waitForLoadState("load", { timeout: 90000 });
+    await expect(
+      page.getByText("Version installée : 0.1.2", { exact: false }),
+    ).toBeVisible({ timeout: 60000 });
+    await page
+      .getByRole("button", { name: "Rechercher des mises à jour" })
+      .click();
+    await expect(
+      page.getByText(/Vous utilisez la version la plus récente/),
+    ).toBeVisible({ timeout: 30000 });
+    console.log("OK mises à jour : version à jour via source locale");
+    fs.writeFileSync(updateState, JSON.stringify({ mode: "offline" }), "utf8");
+    await page
+      .getByRole("button", { name: "Rechercher des mises à jour" })
+      .click();
+    await expect(
+      page.getByText("Connexion Internet indisponible."),
+    ).toBeVisible({ timeout: 30000 });
+    console.log("OK mises à jour : hors ligne signalé proprement");
+  } finally {
+    mock.close();
+    fs.rmSync(updateState, { force: true });
+  }
+
+  console.log("FUMÉE DESKTOP 0.1.2 : TOUT PASSE");
 } finally {
   await browser.close();
 }

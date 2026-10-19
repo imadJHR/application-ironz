@@ -1,5 +1,21 @@
 # CHANGELOG — IRONZ Gestion (desktop)
 
+## 0.1.2 — Mises à jour
+
+Nouvelle section "Paramètres" ▸ "Mises à jour".
+
+- Affichage de la version installée et bouton "Rechercher des mises
+  à jour" (vérification volontaire, jamais automatique).
+- Consultation des versions publiées sur le dépôt GitHub officiel :
+  numéro de version, date, nouveautés et lien direct vers
+  l'installateur Windows dans la Release officielle.
+- Aucune installation automatique : le téléchargement s'ouvre dans le
+  navigateur, l'installateur reste à exécuter manuellement.
+- Sécurité : GET public uniquement (aucune donnée locale transmise),
+  liens limités au dépôt officiel, aucune exécution de fichier.
+- Hors ligne : message "Connexion Internet indisponible", l'application
+  reste 100 % fonctionnelle.
+
 ## 0.1.1 — Compte unique
 
 L'application devient monoposte stricte : un seul compte

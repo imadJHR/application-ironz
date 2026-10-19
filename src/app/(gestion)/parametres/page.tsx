@@ -7,8 +7,10 @@ import { RecordForm } from "@/components/record-form";
 import { BackupRestorePanel } from "@/components/backup-restore";
 import { RecoveryCodePanel } from "@/components/recovery-code-panel";
 import { AccountConflictPanel } from "@/components/account-conflict-panel";
+import { UpdatePanel } from "@/components/update-panel";
 import { PageHeader } from "@/components/common";
 import { ensureRecoverySchema } from "@/server/recovery";
+import { CURRENT_VERSION } from "@/server/updates";
 export default async function Settings() {
   const user = await requireUser("admin");
   const company = await settings();
@@ -61,6 +63,7 @@ export default async function Settings() {
       )}
       <RecordForm resource="parametres" initial={company} />
       <BackupRestorePanel lastBackup={lastBackup} />
+      <UpdatePanel appVersion={CURRENT_VERSION} />
     </>
   );
 }

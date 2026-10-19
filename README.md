@@ -1,6 +1,6 @@
 # IRONZ Gestion
 
-[⬇️ Télécharger IRONZ Gestion 0.1.1 pour Windows](https://github.com/imadJHR/application-ironz/releases/download/v0.1.1/IRONZ-Gestion-Setup-0.1.1.exe)
+[⬇️ Télécharger IRONZ Gestion 0.1.2 pour Windows](https://github.com/imadJHR/application-ironz/releases/download/v0.1.2/IRONZ-Gestion-Setup-0.1.2.exe)
 
 - Windows 64 bits
 - Installation simple avec NSIS
@@ -15,9 +15,9 @@ serveur externe ne sont nécessaires.
 
 ## Télécharger
 
-> - **Fichier** : `IRONZ-Gestion-Setup-0.1.1.exe` (135,8 Mo, Windows 64 bits)
+> - **Fichier** : `IRONZ-Gestion-Setup-0.1.2.exe` (135,8 Mo, Windows 64 bits)
 > - **SHA-256** : à confirmer après installation (voir le fichier SHA256SUMS de la release)
-> - [Notice d'installation complète](https://github.com/imadJHR/application-ironz/releases/download/v0.1.1/IRONZ-Notice-Installation.txt)
+> - [Notice d'installation complète](https://github.com/imadJHR/application-ironz/releases/download/v0.1.2/IRONZ-Notice-Installation.txt)
 
 L'installateur n'est **pas signé numériquement** : Windows SmartScreen peut
 afficher un avertissement au premier lancement. Cliquez sur
@@ -25,8 +25,8 @@ afficher un avertissement au premier lancement. Cliquez sur
 
 ## Installation Windows
 
-1. Téléchargez le fichier `IRONZ-Gestion-Setup-0.1.1.exe` (bouton ci-dessus,
-   ou via la release v0.1.1).
+1. Téléchargez le fichier `IRONZ-Gestion-Setup-0.1.2.exe` (bouton ci-dessus,
+   ou via la release v0.1.2).
 2. Lancez l'installateur.
 3. Suivez les étapes d'installation de l'assistant NSIS.
 4. Ouvrez **IRONZ Gestion** depuis le menu Démarrer ou le raccourci du bureau.
@@ -57,6 +57,7 @@ données et vos comptes.
 | Recherche | Recherche globale et filtres dans tous les modules |
 | Conflit de comptes hérités | Comptes d'essais antérieurs signalés dans « Paramètres » : fusion décidée par l'administrateur (mot de passe requis), aucune suppression automatique |
 | Sauvegarde / Restauration | Sauvegarde et restauration de vos données en deux clics (menu Paramètres) |
+| Mises à jour | Vérification volontaire des nouvelles versions (Paramètres) sur le dépôt GitHub officiel : numéro, nouveautés, lien direct de l'installateur — jamais d'installation automatique |
 
 ## Sécurité et données
 
@@ -84,7 +85,7 @@ données et vos comptes.
 ## Liens
 
 - [GitHub Release v0.1.0](https://github.com/imadJHR/application-ironz/releases/tag/v0.1.0)
-- [Notice d'installation](https://github.com/imadJHR/application-ironz/releases/download/v0.1.1/IRONZ-Notice-Installation.txt)
+- [Notice d'installation](https://github.com/imadJHR/application-ironz/releases/download/v0.1.2/IRONZ-Notice-Installation.txt)
 - [CHANGELOG](distribution/CHANGELOG.md)
 
 ## Pour les développeurs
