@@ -6,8 +6,8 @@ export default function Forbidden() {
       <ShieldCheck size={35} className="muted" />
       <h1>Un accès réservé.</h1>
       <p>
-        Votre rôle ne permet pas d’accéder à cette page. Contactez un
-        administrateur IRONZ si vous avez besoin d’une autorisation.
+        Cette page est réservée au compte administrateur de l’installation.
+        IRONZ Gestion est monoposte : un seul compte, accès complet.
       </p>
       <Link href="/" className="btn btn-primary">
         Retour au tableau de bord

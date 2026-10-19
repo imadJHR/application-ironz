@@ -24,8 +24,8 @@ export default async function FirstRunSetup() {
           <span>IRONZ Gestion.</span>
         </h1>
         <p>
-          Configurez votre espace une seule fois : votre entreprise, votre
-          compte administrateur, puis chaque collaborateur.
+          Configurez votre espace une seule fois : votre entreprise et votre
+          compte administrateur unique — le seul compte de l’installation.
         </p>
         <footer>
           <ShieldCheck size={15} />

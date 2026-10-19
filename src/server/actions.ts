@@ -41,7 +41,6 @@ import {
   productSchema,
   paymentSchema,
   settingsSchema,
-  userSchema,
   firstRunSchema,
   recoverySchema,
   regenerateSchema,
@@ -144,7 +143,7 @@ export async function login(
       data.data.password,
       user?.passwordHash || dummy,
     );
-    if (!user?.active || !valid)
+    if (!user?.active || !valid || user.role !== "ADMIN")
       return { ok: false, message: "Email ou mot de passe incorrect." };
     const token = randomBytes(32).toString("hex"),
       expiresAt = new Date(Date.now() + 8 * 3600 * 1000);
@@ -410,88 +409,64 @@ export async function saveSettings(input: unknown): Promise<Result> {
     return failure(e);
   }
 }
-export async function createUser(input: unknown): Promise<Result> {
-  try {
-    const actor = await requireUser("admin", true);
-    const { password, ...data } = userSchema.parse(input);
-    const passwordHash = await hashPassword(password);
-    await atomic(async (tx) => {
-      const user = await tx.user.create({ data: { ...data, passwordHash } });
-      await tx.activityLog.create({
-        data: {
-          userId: actor.id,
-          action: "Compte employé créé",
-          entityType: "user",
-          entityId: user.id,
-          detail: user.name,
-        },
-      });
-    });
-    refreshed();
-    return { ok: true, message: "Compte interne créé." };
-  } catch (e) {
-    return failure(e);
-  }
-}
-export async function toggleUser(id: string): Promise<Result> {
-  try {
-    const actor = await requireUser("admin", true);
-    if (actor.id === id)
-      business("Vous ne pouvez pas désactiver votre propre compte.");
-    await atomic(async (tx) => {
-      const user = await tx.user.findUniqueOrThrow({ where: { id } });
-      if (
-        user.role === "ADMIN" &&
-        user.active &&
-        (await tx.user.count({ where: { role: "ADMIN", active: true } })) <= 1
-      )
-        business("Conservez au moins un administrateur actif.");
-      await tx.user.update({ where: { id }, data: { active: !user.active } });
-      if (user.active) await tx.session.deleteMany({ where: { userId: id } });
-      await tx.activityLog.create({
-        data: {
-          userId: actor.id,
-          action: user.active ? "Compte désactivé" : "Compte réactivé",
-          entityType: "user",
-          entityId: id,
-          detail: user.name,
-        },
-      });
-    });
-    refreshed();
-    return { ok: true, message: "Compte mis à jour." };
-  } catch (e) {
-    return failure(e);
-  }
-}
-export async function resetPassword(
-  id: string,
+export async function resolveAccountConflict(
+  extraId: string,
   password: string,
 ): Promise<Result> {
   try {
     const actor = await requireUser("admin", true);
-    z.string().min(12).max(128).parse(password);
-    const passwordHash = await hashPassword(password);
+    regenerateSchema.parse({ password });
+    // Le mot de passe actuel confirme la décision (comparaison timing-safe
+    // sur le hash réel ; même protocole que la régénération du code).
+    const full = await db.user.findUnique({ where: { id: actor.id } });
+    if (!full || !(await verifyPassword(password, full.passwordHash)))
+      business("Mot de passe actuel incorrect.");
+    if (extraId === actor.id)
+      business("Impossible de fusionner votre propre compte.");
     await atomic(async (tx) => {
-      await tx.user.update({ where: { id }, data: { passwordHash } });
-      await tx.session.deleteMany({ where: { userId: id } });
+      const extra = await tx.user.findUnique({ where: { id: extraId } });
+      if (!extra) business("Ce compte n'existe plus ou a déjà été fusionné.");
+      // L'historique commercial reste complet : toutes les références
+      // (documents, paiements, journal) sont réaffectées au compte
+      // administrateur conservé. Sessions, code de récupération et
+      // données personnelles du compte fusionné sont retirés.
+      const links = {
+        document: await tx.document.updateMany({
+          where: { createdById: extraId },
+          data: { createdById: actor.id },
+        }),
+        payment: await tx.payment.updateMany({
+          where: { createdById: extraId },
+          data: { createdById: actor.id },
+        }),
+        activity: await tx.activityLog.updateMany({
+          where: { userId: extraId },
+          data: { userId: actor.id },
+        }),
+      };
+      await tx.session.deleteMany({ where: { userId: extraId } });
+      await tx.recoveryCode.deleteMany({ where: { userId: extraId } });
+      await tx.user.delete({ where: { id: extraId } });
       await tx.activityLog.create({
         data: {
           userId: actor.id,
-          action: "Mot de passe réinitialisé",
+          action: "Compte fusionné dans le compte administrateur",
           entityType: "user",
-          entityId: id,
+          entityId: extra.id,
+          detail: `${extra.name} — ${extra.email} (${links.document.count} documents, ${links.payment.count} paiements réaffectés)`,
         },
       });
     });
+    refreshed();
     return {
       ok: true,
-      message: "Mot de passe réinitialisé. Les sessions ont été fermées.",
+      message: "Compte fusionné. L'historique est rattaché à votre compte.",
     };
   } catch (e) {
     return failure(e);
   }
 }
+// Comptes hérités (fusion/panneau de conflit) : prévu dans ./accounts.ts.
 // Message unique pour tous les échecs de récupération : aucune réponse
 // ne révèle si un email ou un code existe (anti-énumération de comptes).
 const RECOVERY_GENERIC = "Email, code ou informations invalides.";

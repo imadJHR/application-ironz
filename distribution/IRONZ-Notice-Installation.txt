@@ -1,11 +1,11 @@
   ┌─────────────────────────────────────────────────────────────┐
-  │  IRONZ GESTION — Version 0.1.0 (Windows, monoposte)         │
+  │  IRONZ GESTION — Version 0.1.1 (Windows, monoposte)         │
   │  Notice d'installation et de sauvegarde des données         │
   └─────────────────────────────────────────────────────────────┘
 
 1. INSTALLATION
 ---------------
-• Double-cliquez sur : IRONZ-Gestion-Setup-0.1.0.exe (135,8 Mo)
+• Double-cliquez sur : IRONZ-Gestion-Setup-0.1.1.exe (135,8 Mo)
 • Aucun droit administrateur n'est nécessaire (installation par
   utilisateur).
 • Choisissez l'emplacement d'installation (par défaut :
@@ -28,6 +28,8 @@
     - mot de passe de 12 caractères minimum (confirmé deux fois).
 • Ce compte administrateur est créé immédiatement et reste le vôtre :
   AUCUN identifiant "standard" n'est livré avec l'application.
+  IRONZ Gestion est monoposte : c'est le seul compte de
+  l'installation, avec un accès complet.
 • Le mot de passe est stocké chiffré (scrypt renforcé) dans la base
   locale, jamais en clair.
 • APRES la configuration, un CODE DE RÉCUPÉRATION s'affiche une seule
@@ -37,7 +39,6 @@
   conservé en clair sur le poste : seule une copie chiffrée (hash)
   est enregistrée. Sans ce code, un mot de passe oublié ne peut pas
   être réinitialisé.
-• Pour créer d'autres comptes ensuite : "Utilisateurs" (admin).
 
 3. EMPLOI
 ---------
@@ -104,6 +105,9 @@
 • Ne supprimez pas, ne renommez pas et ne déplacez pas "ironz.db"
   pendant que l'application fonctionne.
 • Si l'application ne démarre pas : consultez le journal
-  AppData\Roaming\ironz-gestion\launch.log
+  AppData\Roaming\ironz-gestion\launch.log ; en cas de dysfonctionnement
+  du serveur local, les journaux server-err.log et server-out.log se
+  traitent dans le même dossier (à joindre à une demande de support).
+• Ne lancez pas plusieurs copies de l'application en même temps.
 
-── IRONZ — Notice de livraison v0.1.0 ──
+── IRONZ — Notice de livraison v0.1.1 ──

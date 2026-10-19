@@ -13,7 +13,6 @@ import {
   ReceiptText,
   Wallet,
   Settings2,
-  UserRoundCog,
   Search,
   Bell,
   ChevronDown,
@@ -132,9 +131,7 @@ export function Shell({
     )?.label ||
     (pathname.startsWith("/parametres")
       ? "Paramètres"
-      : pathname.startsWith("/utilisateurs")
-        ? "Utilisateurs"
-        : "Recherche");
+      : "Recherche");
   return (
     <div className={"app-shell " + (collapsed ? "sidebar-collapsed" : "")}>
       {mobile && (
@@ -229,32 +226,18 @@ export function Shell({
         <div className="sidebar-bottom">
           <p className="nav-caption">ADMINISTRATION</p>
           {user.role === "ADMIN" && (
-            <>
-              <Link
-                href="/utilisateurs"
-                title={collapsed ? "Utilisateurs" : undefined}
-                onClick={() => setMobile(false)}
-                className={
-                  "nav-item " +
-                  (pathname.startsWith("/utilisateurs") ? "active" : "")
-                }
-              >
-                <UserRoundCog size={19} strokeWidth={1.6} />
-                <span>Utilisateurs</span>
-              </Link>
-              <Link
-                href="/parametres"
-                title={collapsed ? "Paramètres" : undefined}
-                onClick={() => setMobile(false)}
-                className={
-                  "nav-item " +
-                  (pathname.startsWith("/parametres") ? "active" : "")
-                }
-              >
-                <Settings2 size={19} strokeWidth={1.6} />
-                <span>Paramètres</span>
-              </Link>
-            </>
+            <Link
+              href="/parametres"
+              title={collapsed ? "Paramètres" : undefined}
+              onClick={() => setMobile(false)}
+              className={
+                "nav-item " +
+                (pathname.startsWith("/parametres") ? "active" : "")
+              }
+            >
+              <Settings2 size={19} strokeWidth={1.6} />
+              <span>Paramètres</span>
+            </Link>
           )}
           <div className="sidebar-note">
             <span className="mini-brand">Z</span>
@@ -268,16 +251,12 @@ export function Shell({
             <span className="avatar avatar-brand">
               <Image src="/ironz-logo.png" alt="IRONZ" width={22} height={22} />
             </span>
-            <div>
-              <strong>{user.name}</strong>
-              <span>
-                {user.role === "ADMIN"
-                  ? "Administrateur"
-                  : user.role === "COMMERCIAL"
-                    ? "Commercial"
-                    : "Comptabilité"}
-              </span>
-            </div>
+              <div>
+                <strong>{user.name}</strong>
+                <span>
+                  {user.role === "ADMIN" ? "Administrateur" : "Compte hérité"}
+                </span>
+              </div>
             <button
               aria-label="Menu du compte"
               onClick={() => setAccount(!account)}

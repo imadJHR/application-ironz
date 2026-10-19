@@ -56,9 +56,10 @@ function LoginFields({ onForgot }: { onForgot: () => void }) {
       <div className="login-footnote">
         <LockKeyhole size={14} />
         <span>
-          Accès réservé aux collaborateurs IRONZ.
+          Accès réservé au compte administrateur de cette installation.
           <br />
-          Pour obtenir un accès, contactez votre administrateur.
+          IRONZ Gestion est monoposte : un seul compte, créé au premier
+          lancement.
         </span>
       </div>
     </>

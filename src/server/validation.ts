@@ -96,12 +96,8 @@ export const settingsSchema = z.object({
   paymentTerms: text(5000),
   footer: text(5000),
 });
-export const userSchema = z.object({
-  name: z.string().trim().min(2).max(100),
-  email: z.email().transform((e) => e.toLowerCase()),
-  password: z.string().min(12, "12 caractères au minimum.").max(128),
-  role: z.enum(["ADMIN", "COMMERCIAL", "COMPTABILITE"]),
-});
+// IRONZ Gestion est monoposte : aucun schéma de création de compte
+// utilisateur (le seul compte ADMIN est créé à la première installation).
 export const regenerateSchema = z.object({
   password: z.string().min(1).max(128),
 });

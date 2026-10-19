@@ -2,9 +2,11 @@ import { requireUser } from "@/server/auth";
 import { db, isDesktopDb, isPreview } from "@/server/db";
 import { settings } from "@/server/queries";
 import { latestBackupName } from "@/server/backup";
+import { listExtraAccounts } from "@/server/accounts";
 import { RecordForm } from "@/components/record-form";
 import { BackupRestorePanel } from "@/components/backup-restore";
 import { RecoveryCodePanel } from "@/components/recovery-code-panel";
+import { AccountConflictPanel } from "@/components/account-conflict-panel";
 import { PageHeader } from "@/components/common";
 import { ensureRecoverySchema } from "@/server/recovery";
 export default async function Settings() {
@@ -15,6 +17,7 @@ export default async function Settings() {
   let hasCode = false;
   let consumed = false;
   let codeCreatedAt: string | null = null;
+  let extras: Awaited<ReturnType<typeof listExtraAccounts>> = [];
   try {
     if (isDesktopDb() && !isPreview()) {
       await ensureRecoverySchema();
@@ -25,6 +28,13 @@ export default async function Settings() {
         hasCode = true;
         consumed = Boolean(row.consumedAt);
         codeCreatedAt = row.createdAt.toISOString().slice(0, 10);
+      }
+      // Comptes hérités des essais antérieurs : conflit signalé, décision
+      // de l'administrateur (aucune suppression automatique).
+      try {
+        extras = await listExtraAccounts(user.id);
+      } catch {
+        extras = [];
       }
     }
   } catch {
@@ -37,6 +47,7 @@ export default async function Settings() {
         title="Paramètres"
         description="L’identité IRONZ, de votre espace de travail à vos documents."
       />
+      <AccountConflictPanel extras={extras} />
       <div className="info-banner">
         Les documents conservent une copie de vos informations à leur création.
         Une modification du profil n’altère jamais les anciens documents.

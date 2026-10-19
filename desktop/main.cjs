@@ -71,11 +71,28 @@ function startLocalServer(dbFile) {
   // dossier réel du disque (l'app.asar n'est pas un vrai répertoire).
   env.IRONZ_STANDALONE_DIR = realCwd;
   log("démarrage serveur : " + entry + " (exists=" + fs.existsSync(entry) + ")");
-  serverProcess = fork(entry, [], {
-    env,
-    cwd: realCwd,
-    stdio: "ignore",
-  });
+  // stderr/stdout du serveur conservés dans launch.log : un crash au
+  // démarrage (code 1 immédiat) doit laisser une trace lisible.
+  try {
+    const serverStderr = fs.openSync(
+      path.join(app.getPath("userData"), "server-err.log"),
+      "a",
+    );
+    const serverStdout = fs.openSync(
+      path.join(app.getPath("userData"), "server-out.log"),
+      "a",
+    );
+    // fork() d'Electron exige un canal IPC : 'ipc' doit rester présent
+    // dans stdio, sinon ERR_CHILD_PROCESS_IPC_REQUIRED au démarrage.
+    serverProcess = fork(entry, [], {
+      env,
+      cwd: realCwd,
+      stdio: ["ignore", serverStdout, serverStderr, "ipc"],
+    });
+  } catch (e) {
+    log("echec connexion serveur : " + String(e && (e.stack || e.message || e)));
+    serverProcess = fork(entry, [], { env, cwd: realCwd, stdio: "ignore" });
+  }
   log("fork lancé, pid=" + serverProcess.pid);
   serverProcess.on("error", (e) => log("fork error : " + String(e)));
   serverProcess.on("exit", (code, signal) =>

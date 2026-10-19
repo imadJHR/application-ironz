@@ -12,13 +12,11 @@ import {
   saveClient,
   saveProduct,
   saveSettings,
-  createUser,
 } from "@/server/actions";
 import {
   clientSchema,
   productSchema,
   settingsSchema,
-  userSchema,
 } from "@/server/validation";
 import { Brand } from "./brand";
 type Field = {
@@ -97,32 +95,12 @@ const settingsFields: Field[] = [
     full: true,
   },
 ];
-const userFields: Field[] = [
-  { name: "name", label: "Nom complet", required: true },
-  {
-    name: "email",
-    label: "Email professionnel",
-    type: "email",
-    required: true,
-  },
-  {
-    name: "role",
-    label: "Rôle",
-    options: ["COMMERCIAL", "COMPTABILITE", "ADMIN"],
-  },
-  {
-    name: "password",
-    label: "Mot de passe initial (12 caractères minimum)",
-    type: "password",
-    required: true,
-  },
-];
 export function RecordForm({
   resource,
   initial = {},
   id,
 }: {
-  resource: "clients" | "produits" | "parametres" | "utilisateurs";
+  resource: "clients" | "produits" | "parametres";
   initial?: Record<string, unknown>;
   id?: string;
 }) {
@@ -131,9 +109,7 @@ export function RecordForm({
       ? clientFields
       : resource === "produits"
         ? productFields
-        : resource === "parametres"
-          ? settingsFields
-          : userFields;
+        : settingsFields;
   const defaults: Record<string, string> = {
     type: resource === "produits" ? "Produit" : "Entreprise",
     country: "Maroc",
@@ -143,7 +119,6 @@ export function RecordForm({
     currency: "MAD",
     defaultTax: "20",
     quoteValidity: "30",
-    role: "COMMERCIAL",
     logo: "",
     ...Object.fromEntries(
       Object.entries(initial).map(([key, value]) => [key, String(value ?? "")]),
@@ -162,9 +137,7 @@ export function RecordForm({
         ? clientSchema
         : resource === "produits"
           ? productSchema
-          : resource === "parametres"
-            ? settingsSchema
-            : userSchema;
+          : settingsSchema;
     const parsed = schema.safeParse(values);
     if (!parsed.success) {
       setErrors(
@@ -182,9 +155,7 @@ export function RecordForm({
           ? await saveClient(values, id)
           : resource === "produits"
             ? await saveProduct(values, id)
-            : resource === "parametres"
-              ? await saveSettings(values)
-              : await createUser(values);
+            : await saveSettings(values);
       if (!result.ok) {
         toast.error(result.message);
         return;
@@ -202,11 +173,9 @@ export function RecordForm({
       <h2>
         {resource === "parametres"
           ? "Profil de l’entreprise"
-          : resource === "utilisateurs"
-            ? "Compte employé"
-            : resource === "produits"
-              ? "Informations de l’article"
-              : "Informations du client"}
+          : resource === "produits"
+            ? "Informations de l’article"
+            : "Informations du client"}
       </h2>
       <p className="form-description">
         {resource === "parametres"
@@ -301,12 +270,6 @@ export function RecordForm({
           </div>
         ))}
       </div>
-      {resource === "utilisateurs" && (
-        <p className="form-description">
-          Commercial : clients, catalogue et documents de vente. Comptabilité :
-          factures et paiements. Administrateur : accès complet.
-        </p>
-      )}
       <div className="form-actions">
         <Button asChild variant="outline">
           <Link href={resource === "parametres" ? "/" : "/" + resource}>

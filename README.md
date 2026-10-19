@@ -1,6 +1,6 @@
 # IRONZ Gestion
 
-[⬇️ Télécharger IRONZ Gestion 0.1.0 pour Windows](https://github.com/imadJHR/application-ironz/releases/download/v0.1.0/IRONZ-Gestion-Setup-0.1.0.exe)
+[⬇️ Télécharger IRONZ Gestion 0.1.1 pour Windows](https://github.com/imadJHR/application-ironz/releases/download/v0.1.1/IRONZ-Gestion-Setup-0.1.1.exe)
 
 - Windows 64 bits
 - Installation simple avec NSIS
@@ -15,9 +15,9 @@ serveur externe ne sont nécessaires.
 
 ## Télécharger
 
-> - **Fichier** : `IRONZ-Gestion-Setup-0.1.0.exe` (135,8 Mo, Windows 64 bits)
-> - **SHA-256** : `8D6C802F35208C8149FE3D2766B95AAD96C8CC4EA5BD7B4C9D536A9B76D811AE`
-> - [Notice d'installation complète](https://github.com/imadJHR/application-ironz/releases/download/v0.1.0/IRONZ-Notice-Installation.txt)
+> - **Fichier** : `IRONZ-Gestion-Setup-0.1.1.exe` (135,8 Mo, Windows 64 bits)
+> - **SHA-256** : à confirmer après installation (voir le fichier SHA256SUMS de la release)
+> - [Notice d'installation complète](https://github.com/imadJHR/application-ironz/releases/download/v0.1.1/IRONZ-Notice-Installation.txt)
 
 L'installateur n'est **pas signé numériquement** : Windows SmartScreen peut
 afficher un avertissement au premier lancement. Cliquez sur
@@ -25,14 +25,16 @@ afficher un avertissement au premier lancement. Cliquez sur
 
 ## Installation Windows
 
-1. Téléchargez le fichier `IRONZ-Gestion-Setup-0.1.0.exe` (bouton ci-dessus,
-   ou via la [Release v0.1.0](https://github.com/imadJHR/application-ironz/releases/tag/v0.1.0)).
+1. Téléchargez le fichier `IRONZ-Gestion-Setup-0.1.1.exe` (bouton ci-dessus,
+   ou via la release v0.1.1).
 2. Lancez l'installateur.
 3. Suivez les étapes d'installation de l'assistant NSIS.
 4. Ouvrez **IRONZ Gestion** depuis le menu Démarrer ou le raccourci du bureau.
 5. Créez votre compte **administrateur** au premier lancement : entreprise,
    nom, email et mot de passe de 12 caractères minimum. Cette configuration
-   initiale n'apparaît qu'une seule fois et ne peut pas être rejouée.
+   initiale n'apparaît qu'une seule fois et ne peut pas être rejouée. C'est
+   le **seul compte** de l'installation (application monoposte, un seul
+   utilisateur avec un accès complet).
 6. Notez le **code de récupération** affiché à la fin de la configuration :
    il s'affiche une seule fois — conservez-le en lieu sûr.
 
@@ -53,7 +55,7 @@ données et vos comptes.
 | Paiements | Contrôles de solde en transaction, historique par facture |
 | PDF | Formats A4 avec logo, mentions et pagination (les bons de livraison masquent les prix) |
 | Recherche | Recherche globale et filtres dans tous les modules |
-| Utilisateurs | Création et gestion des comptes de votre entreprise (administrateur) |
+| Conflit de comptes hérités | Comptes d'essais antérieurs signalés dans « Paramètres » : fusion décidée par l'administrateur (mot de passe requis), aucune suppression automatique |
 | Sauvegarde / Restauration | Sauvegarde et restauration de vos données en deux clics (menu Paramètres) |
 
 ## Sécurité et données
@@ -63,6 +65,11 @@ données et vos comptes.
   **SQLite** indépendante.
 - L'application fonctionne entièrement hors ligne : **aucune donnée ne
   quitte jamais votre ordinateur** (aucun serveur, aucune télémétrie).
+- Un seul **compte administrateur par installation** (application
+  monoposte) : les anciens comptes commercial/comptabilité d'essais
+  antérieurs ne peuvent plus se connecter et sont proposés à la fusion
+  depuis « Paramètres », décision de l'administrateur avec son mot de
+  passe — jamais de suppression automatique.
 - Les mots de passe sont protégés par **scrypt** (paramètres renforcés et
   versionnés, recommandations OWASP).
 - Un **code de récupération** unique est affiché une seule fois à la
@@ -77,7 +84,7 @@ données et vos comptes.
 ## Liens
 
 - [GitHub Release v0.1.0](https://github.com/imadJHR/application-ironz/releases/tag/v0.1.0)
-- [Notice d'installation](https://github.com/imadJHR/application-ironz/releases/download/v0.1.0/IRONZ-Notice-Installation.txt)
+- [Notice d'installation](https://github.com/imadJHR/application-ironz/releases/download/v0.1.1/IRONZ-Notice-Installation.txt)
 - [CHANGELOG](distribution/CHANGELOG.md)
 
 ## Pour les développeurs

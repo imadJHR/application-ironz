@@ -1,4 +1,4 @@
-﻿// Test de fumée 1.1.2 (serveur standalone + SQLite, base vierge).
+﻿// Test de fumée 0.1.1 (serveur standalone + SQLite, base vierge).
 // Usage : node desktop/smoke.mjs  (serveur attendu sur http://127.0.0.1:4380)
 // Tout le flux part de la configuration initiale : aucun identifiant
 // par défaut n'existe dans l'application.
@@ -341,7 +341,28 @@ try {
 
   await page.goto(base + "/");
   await page.screenshot({ path: "desktop/smoke-dashboard.png" });
-  console.log("FUMÉE DESKTOP 0.1.0 : TOUT PASSE");
+  // 27. Monoposte 0.1.1 : reconnexion puis vérifications compte unique.
+  await page.getByLabel("Email professionnel").fill(email);
+  await page.getByLabel("Mot de passe", { exact: true }).fill(newPassword);
+  await page.getByRole("button", { name: "Se connecter", exact: true }).click();
+  await page.waitForURL(base + "/", { waitUntil: "commit", timeout: 60000 });
+  await page.waitForLoadState("load", { timeout: 90000 });
+  await page.goto(base + "/utilisateurs");
+  await page.waitForLoadState("load", { timeout: 90000 });
+  // notFound() est streamé par Next : le corps porte la page 404.
+  await expect(page.getByText("Cette page est introuvable.")).toBeVisible({
+    timeout: 30000,
+  });
+  console.log("OK /utilisateurs supprimé (page 404)");
+  await page.goto(base + "/parametres");
+  await page.waitForLoadState("load", { timeout: 90000 });
+  for (const gone of ["Créer un compte", "Compte employé", "Comptes hérités détectés"]) {
+    if ((await page.getByText(gone).count()) !== 0)
+      throw new Error("résidu multi-comptes dans Paramètres : " + gone);
+  }
+  console.log("OK Paramètres sans aucune trace de gestion multi-comptes");
+
+  console.log("FUMÉE DESKTOP 0.1.1 : TOUT PASSE");
 } finally {
   await browser.close();
 }
