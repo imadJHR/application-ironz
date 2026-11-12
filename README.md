@@ -1,6 +1,6 @@
 # IRONZ Gestion
 
-[⬇️ Télécharger IRONZ Gestion 0.1.0 pour Windows](https://github.com/imadJHR/application-ironz/releases/download/v0.1.0/IRONZ-Gestion-Setup-0.1.0.exe)
+[⬇️ Télécharger IRONZ Gestion 0.1.1 pour Windows](https://github.com/imadJHR/application-ironz/releases/download/v0.1.1/IRONZ-Gestion-Setup-0.1.1.exe)
 
 - Windows 64 bits
 - Installation simple avec NSIS
@@ -15,9 +15,9 @@ serveur externe ne sont nécessaires.
 
 ## Télécharger
 
-> - **Fichier** : `IRONZ-Gestion-Setup-0.1.0.exe` (135,8 Mo, Windows 64 bits)
-> - **SHA-256** : `760F7528FB16D25AC7DDB358BE299F68CC79ECDA23F5CFDFE0E3603DC19DD97E` (voir aussi le fichier SHA256SUMS de la release)
-> - [Notice d'installation complète](https://github.com/imadJHR/application-ironz/releases/download/v0.1.0/IRONZ-Notice-Installation.txt)
+> - **Fichier** : `IRONZ-Gestion-Setup-0.1.1.exe` (Windows 64 bits)
+> - [Sommes SHA-256](https://github.com/imadJHR/application-ironz/releases/download/v0.1.1/SHA256SUMS.txt)
+> - [Notice d'installation complète](https://github.com/imadJHR/application-ironz/releases/download/v0.1.1/IRONZ-Notice-Installation.txt)
 
 L'installateur n'est **pas signé numériquement** : Windows SmartScreen peut
 afficher un avertissement au premier lancement. Cliquez sur
@@ -25,8 +25,8 @@ afficher un avertissement au premier lancement. Cliquez sur
 
 ## Installation Windows
 
-1. Téléchargez le fichier `IRONZ-Gestion-Setup-0.1.0.exe` (bouton ci-dessus,
-   ou via la release v0.1.0).
+1. Téléchargez le fichier `IRONZ-Gestion-Setup-0.1.1.exe` (bouton ci-dessus,
+   ou via la release v0.1.1).
 2. Lancez l'installateur.
 3. Suivez les étapes d'installation de l'assistant NSIS.
 4. Ouvrez **IRONZ Gestion** depuis le menu Démarrer ou le raccourci du bureau.
@@ -84,8 +84,8 @@ données et vos comptes.
 
 ## Liens
 
-- [GitHub Release v0.1.0](https://github.com/imadJHR/application-ironz/releases/tag/v0.1.0)
-- [Notice d'installation](https://github.com/imadJHR/application-ironz/releases/download/v0.1.0/IRONZ-Notice-Installation.txt)
+- [GitHub Release v0.1.1](https://github.com/imadJHR/application-ironz/releases/tag/v0.1.1)
+- [Notice d'installation](https://github.com/imadJHR/application-ironz/releases/download/v0.1.1/IRONZ-Notice-Installation.txt)
 - [CHANGELOG](distribution/CHANGELOG.md)
 
 ## Pour les développeurs

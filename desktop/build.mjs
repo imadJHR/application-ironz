@@ -9,6 +9,7 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { DatabaseSync } from "node:sqlite";
 
 const root = process.cwd();
 const PORT = "4380";
@@ -43,6 +44,9 @@ const templateDir = path.join(root, "desktop", "template");
 fs.rmSync(templateDir, { recursive: true, force: true });
 fs.mkdirSync(templateDir, { recursive: true });
 const templateDb = path.join(templateDir, "ironz.db");
+// Ouvre le fichier avant db push pour que le moteur Prisma puisse appliquer
+// le schéma même lorsque le dossier de build vient d'être créé sous Windows.
+new DatabaseSync(templateDb).close();
 const templateUrl = "file:" + templateDb.replace(/\\/g, "/");
 run(
   "npx",

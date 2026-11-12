@@ -351,7 +351,7 @@ try {
 
   await page.goto(base + "/");
   await page.screenshot({ path: "desktop/smoke-dashboard.png" });
-  // 27. Monoposte 0.1.0 : reconnexion puis vérifications compte unique.
+  // 27. Monoposte : reconnexion puis vérifications compte unique.
   await page.getByLabel("Email professionnel").fill(email);
   await page.getByLabel("Mot de passe", { exact: true }).fill(newPassword);
   await page.getByRole("button", { name: "Se connecter", exact: true }).click();
@@ -420,7 +420,7 @@ try {
     fs.rmdirSync(updateDir);
   }
 
-  console.log("FUMÉE DESKTOP 0.1.0 : TOUT PASSE");
+  console.log("FUMÉE DESKTOP " + appVersion + " : TOUT PASSE");
 } finally {
   await browser.close();
 }

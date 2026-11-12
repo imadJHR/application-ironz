@@ -1,5 +1,12 @@
 # CHANGELOG — IRONZ Gestion (desktop)
 
+## 0.1.1 — Livraison depuis les factures
+
+- Création d’un bon de livraison depuis une facture émise, y compris après paiement. Les livraisons partielles sont liées à la facture et limitées aux quantités restantes.
+- Les paiements simultanés sont contrôlés dans une transaction SQLite pour éviter de dépasser le solde.
+- La restauration vérifie le fichier SQLite, conserve une copie de sécurité et demande une reconnexion après remplacement des données.
+- Correctifs de sécurité des dépendances de production.
+
 ## 0.1.0 — Première version publique
 
 Première version publique de l'application Desktop IRONZ Gestion

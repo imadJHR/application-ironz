@@ -7,13 +7,14 @@ Ce dossier regroupe les documents de livraison du programme IRONZ Gestion
 
 | Fichier | Rôle |
 | --- | --- |
-| `IRONZ-Notice-Installation.txt` | Notice d'installation officielle version 1.1.1 (à envoyer avec l'installeur) |
+| `IRONZ-Notice-Installation.txt` | Notice d'installation officielle version 0.1.1 (à envoyer avec l'installateur) |
 | `CHANGELOG.md` | Historique des versions livrées |
 
 ## Livrables (dans `desktop/dist/`)
 
 | Fichier | Version | SHA-256 |
 | --- | --- | --- |
+| `IRONZ-Gestion-Setup-0.1.1.exe` | 0.1.1 | [Sommes SHA-256 de la release](https://github.com/imadJHR/application-ironz/releases/download/v0.1.1/SHA256SUMS.txt) |
 | `IRONZ-Gestion-Setup-1.1.1.exe` | 1.1.1 | voir `SESSION-1.1.1-RAPPORT.md` |
 | `IRONZ-Gestion-Setup-1.1.0.exe` | 1.1.0 | `C7FAFF597A6C857E4F0F074805D72FA6CAFFA7227501C10EBEB2D4DF8F9A87DD` |
 | `IRONZ-Gestion-Setup-1.0.0.exe` | 1.0.0 | `60707AF2138EC43DEE32D17553199073A6922DABF69D1A1D96FF2805AF310275` |

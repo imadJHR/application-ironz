@@ -1,11 +1,11 @@
   ┌─────────────────────────────────────────────────────────────┐
-  │  IRONZ GESTION — Version 0.1.0 (Windows, monoposte)         │
+  │  IRONZ GESTION — Version 0.1.1 (Windows, monoposte)         │
   │  Notice d'installation et de sauvegarde des données         │
   └─────────────────────────────────────────────────────────────┘
 
 1. INSTALLATION
 ---------------
-• Double-cliquez sur : IRONZ-Gestion-Setup-0.1.0.exe (135,8 Mo)
+• Double-cliquez sur : IRONZ-Gestion-Setup-0.1.1.exe
 • Aucun droit administrateur n'est nécessaire (installation par
   utilisateur).
 • Choisissez l'emplacement d'installation (par défaut :
@@ -131,4 +131,4 @@
 • Sans Internet : "Connexion Internet indisponible" — toutes les
   fonctions continuent de fonctionner hors ligne.
 
-── IRONZ — Notice de livraison v0.1.0 ──
+── IRONZ — Notice de livraison v0.1.1 ──
