@@ -9,12 +9,23 @@ import { z } from "zod";
 import {
   db,
   atomic,
+  writeTransaction,
   nextNumber,
   jsonSnapshot,
   isDesktopDb,
   isPreview,
 } from "./db";
-import { requireUser, requireDocumentWrite, sessionHash, appOrigins } from "./auth";
+import {
+  requireUser,
+  requireDocumentWrite,
+  sessionHash,
+  appOrigins,
+} from "./auth";
+import {
+  deliveryConflict,
+  remainingDeliveryQuantity,
+  sameDeliveryItems,
+} from "./delivery";
 import { verifyPassword, hashPassword, dummyHash } from "./password";
 import {
   ensureRecoverySchema,
@@ -29,6 +40,7 @@ import {
 } from "./recovery";
 import {
   calculate,
+  canCreateDelivery,
   documentSchema,
   transitions,
   statusLabels,
@@ -373,7 +385,7 @@ export async function saveSettings(input: unknown): Promise<Result> {
         ...parsed,
         defaultTax: new Decimal(parsed.defaultTax).toFixed(2),
       };
-    await atomic(async (tx) => {
+    await writeTransaction(async (tx) => {
       const previous = await tx.companySettings.findUnique({
         where: { id: "ironz" },
       });
@@ -423,7 +435,8 @@ export async function resolveAccountConflict(
       business("Mot de passe actuel incorrect.");
     if (extraId === actor.id)
       business("Impossible de fusionner votre propre compte.");
-    await atomic(async (tx) => {
+    if (isDesktopDb()) await ensureRecoverySchema();
+    await writeTransaction(async (tx) => {
       const extra = await tx.user.findUnique({ where: { id: extraId } });
       if (!extra) business("Ce compte n'existe plus ou a déjà été fusionné.");
       // L'historique commercial reste complet : toutes les références
@@ -682,7 +695,7 @@ export async function saveDocument(
   try {
     const data = documentSchema.parse(input),
       user = await requireDocumentWrite(data.kind);
-    const doc = await atomic(async (tx) => {
+    const doc = await writeTransaction(async (tx) => {
       const existing = id
         ? await tx.document.findUniqueOrThrow({
             where: { id },
@@ -734,18 +747,16 @@ export async function saveDocument(
           new Set(data.items.map((i) => i.sourceItemId)).size !==
           data.items.length
         )
-          business("Chaque article commandé doit apparaître une seule fois.");
+          business(
+            "Chaque ligne du document d’origine doit apparaître une seule fois.",
+          );
         validatedItems = data.items.map((line) => {
           const original = source.items.find((i) => i.id === line.sourceItemId);
           if (!original)
-            business("La ligne ne correspond pas à la commande d’origine.");
-          const reserved = source.children
-            .flatMap((d) => d.items)
-            .filter((i) => i.sourceItemId === original.id)
-            .reduce((s, i) => s.plus(i.quantity.toString()), new Decimal(0));
+            business("La ligne ne correspond pas au document d’origine.");
           if (
             new Decimal(line.quantity).gt(
-              new Decimal(original.quantity.toString()).minus(reserved),
+              remainingDeliveryQuantity(original, source.children),
             )
           )
             business("La quantité dépasse le reste à livrer.");
@@ -761,6 +772,10 @@ export async function saveDocument(
             taxRate: Number(original.taxRate),
             productId: original.productId || undefined,
           };
+        });
+        await tx.document.update({
+          where: { id: source.id },
+          data: { version: { increment: 1 } },
         });
       }
       const { financials, items } = itemData(validatedItems);
@@ -847,7 +862,7 @@ export async function setDocumentStatus(
     await requireUser();
     const current = await db.document.findUniqueOrThrow({ where: { id } });
     const user = await requireDocumentWrite(current.kind);
-    await atomic(async (tx) => {
+    await writeTransaction(async (tx) => {
       const doc = await tx.document.findUniqueOrThrow({
         where: { id },
         include: { payments: true, children: true },
@@ -861,15 +876,15 @@ export async function setDocumentStatus(
       )
         business("Ce document a déjà des paiements ou des documents liés.");
       if (doc.kind === "DELIVERY" && status === "DELIVERED" && doc.sourceId) {
-        const order = await tx.document.findUniqueOrThrow({
+        const source = await tx.document.findUniqueOrThrow({
           where: { id: doc.sourceId },
           include: {
             items: true,
             children: { where: { kind: "DELIVERY" }, include: { items: true } },
           },
         });
-        const complete = order.items.every((item) =>
-          order.children
+        const complete = source.items.every((item) =>
+          source.children
             .filter(
               (d) =>
                 d.id === id || ["DELIVERED", "RECEIVED"].includes(d.status),
@@ -879,7 +894,21 @@ export async function setDocumentStatus(
             .reduce((sum, i) => sum.plus(i.quantity.toString()), new Decimal(0))
             .gte(item.quantity.toString()),
         );
-        if (complete)
+        const order =
+          source.kind === "ORDER"
+            ? source
+            : complete && source.kind === "INVOICE" && source.sourceId
+              ? await tx.document.findUnique({
+                  where: { id: source.sourceId },
+                  include: { items: true },
+                })
+              : null;
+        if (
+          complete &&
+          order?.kind === "ORDER" &&
+          (source.kind === "ORDER" ||
+            sameDeliveryItems(order.items, source.items))
+        )
           await tx.document.update({
             where: { id: order.id },
             data: { status: "DELIVERED", version: { increment: 1 } },
@@ -919,7 +948,7 @@ export async function convertDocument(
   try {
     z.enum(["ORDER", "DELIVERY", "INVOICE"]).parse(target);
     const user = await requireDocumentWrite(target);
-    const created = await atomic(async (tx) => {
+    const created = await writeTransaction(async (tx) => {
       const source = await tx.document.findUniqueOrThrow({
         where: { id },
         include: {
@@ -933,12 +962,18 @@ export async function convertDocument(
           ["ORDER", "INVOICE"].includes(target)) ||
         (source.kind === "ORDER" &&
           ["CONFIRMED", "PREPARING", "DELIVERED"].includes(source.status) &&
-          ["DELIVERY", "INVOICE"].includes(target)) ||
+          target === "INVOICE") ||
+        (target === "DELIVERY" &&
+          canCreateDelivery(source.kind, source.status)) ||
         (source.kind === "DELIVERY" &&
           ["DELIVERED", "RECEIVED"].includes(source.status) &&
           target === "INVOICE");
       if (!valid)
         business("Le statut de ce document ne permet pas cette conversion.");
+      if (target === "DELIVERY") {
+        const conflict = await deliveryConflict(tx, source);
+        if (conflict) business(conflict);
+      }
       if (
         target === "ORDER" &&
         source.children.some(
@@ -955,6 +990,8 @@ export async function convertDocument(
           const parent = await tx.document.findUniqueOrThrow({
             where: { id: parentId },
           });
+          if (parent.kind === "INVOICE")
+            business("Ce bon de livraison est déjà rattaché à une facture.");
           parentId = parent.sourceId;
         }
         const branchIds: string[] = [id];
@@ -982,16 +1019,9 @@ export async function convertDocument(
         .map((item) => {
           let quantity = Number(item.quantity);
           if (target === "DELIVERY") {
-            const reserved = source.children
-              .filter((d) => d.kind === "DELIVERY")
-              .flatMap((d) => d.items)
-              .filter((i) => i.sourceItemId === item.id)
-              .reduce(
-                (sum, i) => sum.plus(i.quantity.toString()),
-                new Decimal(0),
-              );
-            const remaining = new Decimal(item.quantity.toString()).minus(
-              reserved,
+            const remaining = Decimal.max(
+              0,
+              remainingDeliveryQuantity(item, source.children),
             );
             quantity = quantities
               ? (quantities[item.id] ?? 0)
@@ -1051,10 +1081,13 @@ export async function convertDocument(
           items: { create: items },
         },
       });
-      if (source.kind === "QUOTE")
+      if (source.kind === "QUOTE" || target === "DELIVERY")
         await tx.document.update({
           where: { id },
-          data: { status: "CONVERTED", version: { increment: 1 } },
+          data: {
+            status: source.kind === "QUOTE" ? "CONVERTED" : undefined,
+            version: { increment: 1 },
+          },
         });
       await tx.activityLog.create({
         data: {
@@ -1109,52 +1142,48 @@ export async function duplicateDocument(id: string): Promise<Result> {
 export async function deleteChain(id: string): Promise<Result> {
   try {
     await requireUser("admin", true);
-    const start = await db.document.findUnique({
-      where: { id },
-      select: { id: true, sourceId: true },
-    });
-    if (!start) business("Document introuvable.");
-    // Remonte jusqu'à la racine de la chaîne.
-    let root = start.id,
-      parentId = start.sourceId;
-    while (parentId) {
-      const parent = await db.document.findUnique({
-        where: { id: parentId },
+    const deleted = await writeTransaction(async (tx) => {
+      const start = await tx.document.findUnique({
+        where: { id },
         select: { id: true, sourceId: true },
       });
-      if (!parent) break;
-      root = parent.id;
-      parentId = parent.sourceId;
-    }
-    // Redescend vers tous les documents liés.
-    const ids = new Set([root]),
-      queue = [root];
-    while (queue.length) {
-      const children = await db.document.findMany({
-        where: { sourceId: queue.pop() },
-        select: { id: true },
+      if (!start) business("Document introuvable.");
+      // Remonte jusqu'à la racine de la chaîne.
+      let root = start.id,
+        parentId = start.sourceId;
+      while (parentId) {
+        const parent = await tx.document.findUnique({
+          where: { id: parentId },
+          select: { id: true, sourceId: true },
+        });
+        if (!parent) break;
+        root = parent.id;
+        parentId = parent.sourceId;
+      }
+      // Redescend vers tous les documents liés.
+      const ids = new Set([root]),
+        queue = [root];
+      while (queue.length) {
+        const children = await tx.document.findMany({
+          where: { sourceId: queue.pop() },
+          select: { id: true },
+        });
+        for (const child of children)
+          if (!ids.has(child.id)) {
+            ids.add(child.id);
+            queue.push(child.id);
+          }
+      }
+      const all = [...ids];
+      // Seules les chaînes en brouillon sans paiement peuvent être effacées.
+      const chain = await tx.document.findMany({
+        where: { id: { in: all } },
+        select: { status: true, payments: { select: { id: true } } },
       });
-      for (const child of children)
-        if (!ids.has(child.id)) {
-          ids.add(child.id);
-          queue.push(child.id);
-        }
-    }
-    const all = [...ids];
-    // Conformité fiscale (art. 145 CGI, numérotation sans trou) : seuls les
-    // brouillons sans paiement peuvent être effacés. Les documents émis
-    // s'annulent, ils ne se suppriment pas.
-    const chain = await db.document.findMany({
-      where: { id: { in: all } },
-      select: { status: true, payments: { select: { id: true } } },
-    });
-    if (
-      chain.some((d) => d.status !== "DRAFT" || d.payments.length > 0)
-    )
-      business(
-        "Suppression réservée aux chaînes en brouillon sans paiement. Annulez les documents émis.",
-      );
-    await atomic(async (tx) => {
+      if (chain.some((d) => d.status !== "DRAFT" || d.payments.length > 0))
+        business(
+          "Suppression réservée aux chaînes en brouillon sans paiement. Annulez les documents émis.",
+        );
       await tx.payment.deleteMany({ where: { invoiceId: { in: all } } });
       await tx.documentItem.updateMany({
         where: { documentId: { in: all } },
@@ -1171,12 +1200,13 @@ export async function deleteChain(id: string): Promise<Result> {
       await tx.activityLog.deleteMany({
         where: { entityId: { in: all } },
       });
+      return all.length;
     });
     refreshed();
     return {
       ok: true,
       message:
-        "Chaîne supprimée définitivement (" + all.length + " document(s)).",
+        "Chaîne supprimée définitivement (" + deleted + " document(s)).",
     };
   } catch (e) {
     return failure(e);
@@ -1186,7 +1216,7 @@ export async function registerPayment(input: unknown): Promise<Result> {
   try {
     const user = await requireUser("finance", true);
     const data = paymentSchema.parse(input);
-    const payment = await atomic(async (tx) => {
+    const payment = await writeTransaction(async (tx) => {
       const replay = await tx.payment.findUnique({
         where: { idempotencyKey: data.idempotencyKey },
       });

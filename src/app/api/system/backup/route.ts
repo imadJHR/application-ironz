@@ -1,5 +1,11 @@
 import { currentUser } from "@/server/auth";
-import { backupFilePath, createBackup, latestBackupName } from "@/server/backup";
+import {
+  backupFilePath,
+  createBackup,
+  latestBackupName,
+} from "@/server/backup";
+import { readFile } from "node:fs/promises";
+import { basename } from "node:path";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -20,23 +26,26 @@ export async function GET(req: Request) {
     );
   try {
     const create = new URL(req.url).searchParams.get("create") === "1";
+    let file;
     if (create) {
       const result = await createBackup();
       if (!result.ok || !result.file)
         return NextResponse.json({ error: result.message }, { status: 500 });
+      file = result.file;
+    } else {
+      const latest = latestBackupName();
+      if (!latest)
+        return NextResponse.json(
+          { error: "Aucune sauvegarde disponible. Créez-en une d’abord." },
+          { status: 404 },
+        );
+      file = backupFilePath(latest);
     }
-    const latest = latestBackupName();
-    if (!latest)
-      return NextResponse.json(
-        { error: "Aucune sauvegarde disponible. Créez-en une d’abord." },
-        { status: 404 },
-      );
-    const file = backupFilePath(latest);
-    const bytes = await import("node:fs/promises").then((m) => m.readFile(file));
+    const bytes = await readFile(file);
     return new Response(new Uint8Array(bytes), {
       headers: {
         "Content-Type": "application/octet-stream",
-        "Content-Disposition": `attachment; filename="${latest}"`,
+        "Content-Disposition": `attachment; filename="${basename(file)}"`,
         "Cache-Control": "no-store",
       },
     });

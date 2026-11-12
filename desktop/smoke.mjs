@@ -5,19 +5,22 @@
 import { chromium, expect } from "@playwright/test";
 import { randomBytes } from "node:crypto";
 import fs from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { startUpdateMock } from "./updates-mock.mjs";
 
-const base = "http://127.0.0.1:4380";
+const base = process.env.IRONZ_SMOKE_URL || "http://127.0.0.1:4380";
 const company = "IRONZ Steel Test";
 const adminName = "Admin Setup Test";
 const email = "smoke-" + randomBytes(4).toString("hex") + "@ironz.test";
 const password = "Fume+" + randomBytes(12).toString("base64url") + "!1";
 const newPassword = "Fume2+" + randomBytes(12).toString("base64url") + "!2";
 const backupFile = "desktop/smoke-sauvegarde.db";
-const updateState = "C:/Users/imadj/AppData/Local/Temp/opencode/updates-mock-state.json";
 const appVersion = JSON.parse(fs.readFileSync("package.json", "utf8")).version;
 
-const browser = await chromium.launch();
+const browser = await chromium.launch({
+  executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE,
+});
 const page = await browser.newPage();
 try {
   // 1. Base vierge : / envoie à la configuration initiale.
@@ -192,8 +195,13 @@ try {
     throw new Error("restauration échouée : " + restoreRes.status() + " " + JSON.stringify(restoreJson));
   console.log("OK restauration réussie : " + restoreJson.message);
 
-  // 17. Le serveur fonctionne sur la base restaurée : la session de la
-  // sauvegarde est encore valide et les données sont présentes.
+  // 17. Les sessions sont révoquées. Après connexion, les données sont présentes.
+  await page.goto(base + "/recherche?q=test+desktop");
+  await expect(page).toHaveURL(base + "/connexion");
+  await page.getByLabel("Email professionnel").fill(email);
+  await page.getByLabel("Mot de passe", { exact: true }).fill(password);
+  await page.getByRole("button", { name: "Se connecter", exact: true }).click();
+  await page.waitForURL(base + "/", { timeout: 60000 });
   await page.goto(base + "/recherche?q=test+desktop");
   await page.getByText("Client Test Desktop").first().waitFor({ timeout: 30000 });
   console.log("OK données retrouvées après restauration");
@@ -216,7 +224,7 @@ try {
   await page.getByRole("button", { name: "Mot de passe oublié ?" }).click();
   console.log("OK lien mot de passe oublié");
 
-  async function recoverySubmit(codeValue, pass = newPassword, resolve = true) {
+  async function recoverySubmit(codeValue, pass = newPassword) {
     const emailBox = page.getByLabel("Email du compte administrateur");
     await emailBox.fill(email);
     await page.getByLabel("Code de récupération").fill(codeValue);
@@ -227,17 +235,16 @@ try {
       .getByLabel("Confirmer le nouveau mot de passe")
       .fill(pass + (pass === newPassword ? "" : "x"));
     const submit = page.getByRole("button", { name: "Récupérer l’accès" });
-    await submit.click();
-    if (resolve) {
-      // Séquence fiable : l'action démarre (bouton désactivé) puis se
-      // résout (réactivé, ou écran remplacé en cas de succès).
-      try {
-        await expect(submit).toBeDisabled({ timeout: 10000 });
-        await expect(submit).toBeEnabled({ timeout: 45000 });
-      } catch {
-        // Écran remplacé (succès) : bouton parti, rien à attendre.
-      }
-    }
+    const [response] = await Promise.all([
+      page.waitForResponse(
+        (result) =>
+          result.request().method() === "POST" &&
+          result.url().startsWith(base + "/connexion"),
+        { timeout: 60000 },
+      ),
+      submit.click(),
+    ]);
+    await response.finished();
   }
   const genericError = "Email, code ou informations invalides.";
 
@@ -367,7 +374,8 @@ try {
 
   // 28. Section Mises à jour : version affichée, recherche à jour puis
   //     hors ligne via le mock local.
-  fs.rmSync(updateState, { force: true });
+  const updateDir = fs.mkdtempSync(join(tmpdir(), "ironz-smoke-"));
+  const updateState = join(updateDir, "updates.json");
   const mock = await startUpdateMock(updateState);
   try {
     fs.writeFileSync(
@@ -409,6 +417,7 @@ try {
   } finally {
     mock.close();
     fs.rmSync(updateState, { force: true });
+    fs.rmdirSync(updateDir);
   }
 
   console.log("FUMÉE DESKTOP 0.1.0 : TOUT PASSE");

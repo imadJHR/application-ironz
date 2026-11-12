@@ -9,6 +9,7 @@ export function documentData(doc: StoredDocument) {
   return {
     id: doc.id,
     kind: doc.kind,
+    sourceKind: doc.source?.kind,
     number: doc.number,
     status: doc.status,
     date: new Date(doc.date).toISOString(),

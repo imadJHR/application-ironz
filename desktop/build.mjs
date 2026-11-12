@@ -74,27 +74,28 @@ console.log("[desktop] moteur : " + engineCandidates[0]);
 const mongoBackup = path.join(root, "desktop", ".mongo-backup");
 const prismaDir = path.join(root, "src", "generated", "prisma");
 const sqliteDir = path.join(root, "src", "generated", "prisma-desktop");
+if (!fs.existsSync(prismaDir)) run("npx", ["prisma", "generate"]);
 fs.rmSync(mongoBackup, { recursive: true, force: true });
 copyDir(prismaDir, mongoBackup);
-for (const f of fs.readdirSync(sqliteDir))
-  fs.cpSync(path.join(sqliteDir, f), path.join(prismaDir, f), {
-    recursive: true,
+
+try {
+  for (const f of fs.readdirSync(sqliteDir))
+    fs.cpSync(path.join(sqliteDir, f), path.join(prismaDir, f), {
+      recursive: true,
+    });
+  console.log("[desktop] client SQLite en place pour le bundle.");
+
+  run("npx", ["next", "build", "--webpack"], {
+    DESKTOP_BUILD: "1",
+    IRONZ_SQLITE: "1",
+    APP_URL: BASE_URL,
   });
-console.log("[desktop] client SQLite en place pour le bundle.");
-
-// 5. Build Next standalone desktop.
-run("npx", ["next", "build", "--webpack"], {
-  DESKTOP_BUILD: "1",
-  IRONZ_SQLITE: "1",
-  APP_URL: BASE_URL,
-});
-
-// 6. Restauration immédiate du client Mongo (l'arbre web reste intact).
-fs.rmSync(prismaDir, { recursive: true, force: true });
-copyDir(mongoBackup, prismaDir);
-fs.rmSync(mongoBackup, { recursive: true, force: true });
-run("npx", ["prisma", "generate"]);
-console.log("[desktop] client Mongo restauré.");
+} finally {
+  fs.rmSync(prismaDir, { recursive: true, force: true });
+  copyDir(mongoBackup, prismaDir);
+  fs.rmSync(mongoBackup, { recursive: true, force: true });
+  console.log("[desktop] client Prisma initial restauré.");
+}
 
 // 5. Assemblage du dossier à empaqueter.
 const pack = path.join(root, "desktop", "pack");

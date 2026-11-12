@@ -145,7 +145,11 @@ export function CommercialPrint({
               </>
             ) : (
               <>
-                {delivery && <th>COMMANDÉE</th>}
+                {delivery && (
+                  <th>
+                    {doc.sourceKind === "INVOICE" ? "FACTURÉE" : "COMMANDÉE"}
+                  </th>
+                )}
                 <th>{delivery ? "LIVRÉE" : "QTÉ"}</th>
                 <th>UNITÉ</th>
                 {valuedDelivery && (

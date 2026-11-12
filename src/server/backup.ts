@@ -1,263 +1,220 @@
 import "server-only";
-import fs from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
+import { mkdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { db } from "./db";
-import { PrismaClient } from "@/generated/prisma";
+import type { DatabaseSync } from "node:sqlite";
+import { Prisma } from "@/generated/prisma";
+import { recoverySchemaStatements } from "./recovery";
 
-// Chemin du fichier SQLite courant (DATABASE_URL = file:<chemin>).
-// Le chemin est déterminé par le serveur lui-même : jamais de chemin
-// utilisateur arbitraire côté serveur.
-export function databaseFile(): string {
+export const MAX_BACKUP_BYTES = 512 * 1024 * 1024;
+const BACKUP_NAME = /^ironz-sauvegarde-[0-9-]+(?:-[0-9a-f]{8})?\.db$/;
+const SQLITE_HEADER = Buffer.from("SQLite format 3\0");
+let restoring = false;
+
+function databaseFile(): string {
   const url = process.env.DATABASE_URL || "";
-  if (!url.startsWith("file:"))
+  if (!url.startsWith("file:") || url.length === 5)
     throw new Error("Base de données locale introuvable.");
-  const file = url.slice("file:".length);
-  return path.normalize(file.replace(/\\/g, "/"));
+  return path.normalize(url.slice(5));
 }
-function urlFor(file: string) {
-  return "file:" + file.replace(/\\/g, "/");
+
+function backupDirectory(file = databaseFile()) {
+  return path.join(path.dirname(file), "sauvegardes");
 }
-// Surface brute SQL : les méthodes $*Raw existent dans le client SQLite
-// (bundle desktop) mais pas dans le client Mongo (arbre web, typage build).
-// Le double appel est façonné par cast — la vérification de schéma valide
-// les tables cœur, si un mélange de bases se produit.
-type RawSurface = {
-  $queryRawUnsafe: <T>(query: string, ...params: unknown[]) => Promise<T>;
-  $executeRawUnsafe: (query: string) => Promise<unknown>;
-  $disconnect: () => Promise<void>;
-};
-const raw = (client: unknown): RawSurface =>
-  client as RawSurface;
-async function diskClient(file: string) {
-  const Ctor = PrismaClient as unknown as new (opts: {
-    datasourceUrl: string;
-  }) => PrismaClient;
-  return new Ctor({ datasourceUrl: urlFor(file) });
+
+function backupTag() {
+  const now = new Date();
+  const pad = (value: number) => String(value).padStart(2, "0");
+  const date = now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate());
+  const time =
+    pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds());
+  const milliseconds = String(now.getMilliseconds()).padStart(3, "0");
+  return `${date}-${time}-${milliseconds}-${randomUUID().slice(0, 8)}`;
 }
-const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
-async function retry(unit: () => void, label: string, times = 8): Promise<void> {
-  for (let i = 1; ; i++) {
-    try {
-      unit();
-      return;
-    } catch (e) {
-      if (i >= times)
+
+function verifyDatabase(connection: DatabaseSync) {
+  const integrity = connection.prepare("PRAGMA integrity_check(1)").get();
+  if (integrity?.integrity_check !== "ok")
+    throw new Error("La sauvegarde SQLite est corrompue.");
+
+  const tableInfo = connection.prepare(
+    "SELECT name FROM pragma_table_info(?) WHERE EXISTS (SELECT 1 FROM sqlite_schema WHERE type = 'table' AND name = ?)",
+  );
+  for (const model of Prisma.dmmf.datamodel.models) {
+    const table = model.dbName || model.name;
+    const columns = new Set(tableInfo.all(table, table).map((row) => row.name));
+    if (table === "RecoveryCode" && columns.size === 0) continue;
+    if (columns.size === 0)
+      throw new Error(`Schéma incompatible : table ${table} manquante.`);
+    for (const field of model.fields) {
+      if (field.kind !== "object" && !columns.has(field.dbName || field.name))
         throw new Error(
-          `${label} impossible : ${e instanceof Error ? e.message : "erreur inconnue"}`,
+          `Schéma incompatible : colonne ${table}.${field.name} manquante.`,
         );
-      await wait(250);
     }
   }
 }
-async function retryOrFalse(unit: () => void, times = 8): Promise<boolean> {
+
+async function openDatabase(file: string, readOnly: boolean) {
+  const { DatabaseSync } = await import("node:sqlite");
+  const connection = new DatabaseSync(file, { readOnly });
   try {
-    await retry(unit, "opération", times);
-    return true;
-  } catch {
-    return false;
+    connection.exec("PRAGMA trusted_schema = OFF; PRAGMA busy_timeout = 5000;");
+    if (!readOnly) {
+      // Les fichiers temporaires doivent rester autonomes après leur fermeture.
+      const journal = connection.prepare("PRAGMA journal_mode = DELETE").get();
+      if (journal?.journal_mode !== "delete")
+        throw new Error("Impossible de fermer le journal de la sauvegarde.");
+    }
+    return connection;
+  } catch (error) {
+    connection.close();
+    throw error;
   }
 }
-// Tables cœur attendues d'un schéma IRONZ compatible (schéma SQLite 1.0+).
-const CORE_TABLES = [
-  "User",
-  "Session",
-  "LoginAttempt",
-  "Client",
-  "Product",
-  "CompanySettings",
-  "DocumentSequence",
-  "Document",
-  "DocumentItem",
-  "Payment",
-  "ActivityLog",
-];
-function stamp() {
-  const d = new Date();
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(
-    d.getHours(),
-  )}${p(d.getMinutes())}${p(d.getSeconds())}`;
-}
-// Intégrité d'un fichier SQLite par une connexion dédiée fermée à la fin.
-export async function integrityCheck(file: string): Promise<string> {
-  const client = await diskClient(file);
+
+async function copyDatabase(source: string, target: string) {
+  const { backup } = await import("node:sqlite");
+  const connection = await openDatabase(source, true);
   try {
-    const rows = await raw(client).$queryRawUnsafe<{ integrity_check: string }[]>(
-      "PRAGMA integrity_check",
-    );
-    return rows?.[0]?.integrity_check || "unknown";
+    // SQLite copie un instantané cohérent, y compris les écritures du WAL.
+    await backup(connection, target);
   } finally {
-    await client.$disconnect();
+    connection.close();
   }
 }
-async function coreTablesPresent(file: string): Promise<string[]> {
-  const client = await diskClient(file);
+
+async function writeVerifiedBackup(source: string, target: string) {
+  await mkdir(path.dirname(target), { recursive: true });
+  const staging = target + ".incoming";
   try {
-    const rows = await raw(client).$queryRawUnsafe<{ name: string }[]>(
-      "SELECT name FROM sqlite_master WHERE type='table'",
-    );
-    return CORE_TABLES.filter((t) => !rows?.some((r) => r.name === t));
+    await copyDatabase(source, staging);
+    const connection = await openDatabase(staging, false);
+    try {
+      verifyDatabase(connection);
+    } finally {
+      connection.close();
+    }
+    await rename(staging, target);
   } finally {
-    await client.$disconnect();
+    await removeStagingDatabase(staging);
   }
 }
-// Checkpoint WAL de la base vivante : le fichier principal devient
-// cohérent par lui-même, une simple copie est fiable.
-export async function checkpoint() {
-  try {
-    await raw(db).$executeRawUnsafe("PRAGMA wal_checkpoint(TRUNCATE)");
-  } catch {
-    // WAL non utilisé (journal DELETE) : rien à faire.
-  }
+
+async function removeStagingDatabase(file: string) {
+  await Promise.allSettled(
+    ["", "-journal", "-wal", "-shm"].map((suffix) =>
+      rm(file + suffix, { force: true }),
+    ),
+  );
 }
-export const isSqliteFile = (bytes: Uint8Array) =>
-  bytes.length > 16 &&
-  Buffer.from(bytes.subarray(0, 15)).toString("ascii") === "SQLite format 3";
-export type BackupResult = { ok: boolean; message: string; file?: string; size?: number };
+
+type BackupResult = {
+  ok: boolean;
+  message: string;
+  file?: string;
+  size?: number;
+};
+
 export async function createBackup(): Promise<BackupResult> {
-  const dbFile = databaseFile();
-  const dir = path.dirname(dbFile),
-    backupsDir = path.join(dir, "sauvegardes");
-  fs.mkdirSync(backupsDir, { recursive: true });
-  await checkpoint();
-  const target = path.join(backupsDir, `ironz-sauvegarde-${stamp()}.db`);
-  fs.copyFileSync(dbFile, target);
-  const integrity = await integrityCheck(target);
-  if (integrity !== "ok") {
-    fs.rmSync(target, { force: true });
+  const source = databaseFile();
+  const target = path.join(
+    backupDirectory(source),
+    `ironz-sauvegarde-${backupTag()}.db`,
+  );
+  try {
+    await writeVerifiedBackup(source, target);
+    return {
+      ok: true,
+      message: "Sauvegarde créée et vérifiée.",
+      file: target,
+      size: (await stat(target)).size,
+    };
+  } catch (error) {
     return {
       ok: false,
-      message: "La sauvegarde est illisible (intégrité " + integrity + ").",
+      message:
+        "Sauvegarde impossible : " +
+        (error instanceof Error ? error.message : "erreur inconnue"),
     };
   }
-  const missing = await coreTablesPresent(target);
-  if (missing.length) {
-    fs.rmSync(target, { force: true });
-    return {
-      ok: false,
-      message: "Sauvegarde incomplète : tables manquantes (" + missing.join(", ") + ").",
-    };
-  }
-  return { ok: true, message: "Sauvegarde créée et vérifiée.", file: target, size: fs.statSync(target).size };
 }
+
 export function latestBackupName(): string | null {
   try {
-    const dir = path.join(path.dirname(databaseFile()), "sauvegardes");
-    const files = fs
-      .readdirSync(dir)
-      .filter((f) => /^ironz-sauvegarde-.*\.db$/.test(f))
-      .sort();
-    return files.at(-1) || null;
+    return (
+      readdirSync(backupDirectory())
+        .filter((name) => BACKUP_NAME.test(name))
+        .sort()
+        .at(-1) || null
+    );
   } catch {
     return null;
   }
 }
+
 export function backupFilePath(name: string): string {
-  // Sécurité : uniquement des noms issus du dossier de sauvegardes local.
-  if (!/^ironz-sauvegarde-[0-9-]+\.db$/.test(name))
-    throw new Error("Nom de sauvegarde invalide.");
-  const dir = path.join(path.dirname(databaseFile()), "sauvegardes");
-  const file = path.join(dir, name);
-  if (!fs.existsSync(file)) throw new Error("Sauvegarde introuvable.");
+  if (!BACKUP_NAME.test(name)) throw new Error("Nom de sauvegarde invalide.");
+  const file = path.join(backupDirectory(), name);
+  if (!existsSync(file)) throw new Error("Sauvegarde introuvable.");
   return file;
 }
-export type RestoreResult = {
-  ok: boolean;
-  message: string;
-  details?: string;
-};
-// Restauration : le fichier est transmis par l'utilisateur via upload
-// (du navigateur) ; le serveur le traite dans son dossier de données,
-// sans jamais accepter de chemin arbitraire.
+
 export async function restoreFromUpload(
   bytes: Uint8Array,
-): Promise<RestoreResult> {
-  if (!isSqliteFile(bytes))
-    return { ok: false, message: "Fichier non reconnu : ce n’est pas une base SQLite." };
-  const limit = 512 * 1024 * 1024;
-  if (bytes.length > limit)
+): Promise<{ ok: boolean; message: string }> {
+  if (bytes.length > MAX_BACKUP_BYTES)
     return { ok: false, message: "Fichier trop volumineux (> 512 Mo)." };
-  const dbFile = databaseFile();
-  const dir = path.dirname(dbFile);
-  const tag = stamp() + "-" + randomUUID().slice(0, 8);
-  const incoming = path.join(dir, `ironz-restore-${tag}.incoming`);
-  fs.writeFileSync(incoming, bytes);
+  if (
+    !Buffer.from(bytes.subarray(0, SQLITE_HEADER.length)).equals(SQLITE_HEADER)
+  )
+    return {
+      ok: false,
+      message: "Fichier non reconnu : ce n’est pas une base SQLite.",
+    };
+  if (restoring)
+    return { ok: false, message: "Une restauration est déjà en cours." };
+
+  const live = databaseFile();
+  const tag = backupTag();
+  const incoming = path.join(
+    path.dirname(live),
+    `ironz-restore-${tag}.incoming`,
+  );
+  const previous = path.join(
+    backupDirectory(live),
+    `ironz-avant-restauration-${tag}.db`,
+  );
+  restoring = true;
   try {
-    const integrity = await integrityCheck(urlFor(incoming));
-    if (integrity !== "ok") {
-      fs.rmSync(incoming, { force: true });
-      return {
-        ok: false,
-        message: `Sauvegarde corrompue (intégrité ${integrity}). Restauration annulée.`,
-      };
+    await writeFile(incoming, bytes, { flag: "wx" });
+    const connection = await openDatabase(incoming, false);
+    try {
+      verifyDatabase(connection);
+      connection.exec('DELETE FROM "Session"');
+      for (const ddl of recoverySchemaStatements) connection.exec(ddl);
+    } finally {
+      connection.close();
     }
-    const missing = await coreTablesPresent(urlFor(incoming));
-    if (missing.length) {
-      fs.rmSync(incoming, { force: true });
-      return {
-        ok: false,
-        message: `Schéma incompatible : tables manquantes (${missing.join(", ")}).`,
-      };
-    }
-    // 1. Sauvegarde de sécurité : le fichier vivant est copié puis écarté
-    // (renommé) vers "sauvegardes" — jamais supprimé ni écrasé.
-    await checkpoint();
-    const previous = path.join(
-      dir,
-      "sauvegardes",
-      `ironz-avant-restauration-${tag}.db`,
-    );
-    await retry(() => fs.copyFileSync(dbFile, previous), "copie de sécurité");
-    // 2. Fermer proprement la connexion à la base du programme : le moteur
-    // Windows retient le fichier quelques centaines de ms après $disconnect,
-    // d'où les tentatives avec attente avant d'échanger le fichier.
-    await db.$disconnect();
-    // 3. Écarter les fichiers journal/WAL pointant vers l'ancienne base.
-    for (const ext of ["-wal", "-shm"]) {
-      try {
-        fs.rmSync(dbFile + ext, { force: true });
-      } catch {
-        // Disk IO best effort.
-      }
-    }
-    // 4. Échange : l'ancienne base prend le nom de sécurité, la nouvelle
-    // occupe sa place. Fallback : recopie "in place" si le rename échoue.
-    const renamed = await retryOrFalse(() => fs.renameSync(dbFile, previous));
-    if (!renamed) {
-      await retryOrFalse(() => fs.copyFileSync(incoming, dbFile));
-    } else {
-      await retry(() => fs.renameSync(incoming, dbFile), "échange du fichier");
-    }
-    // 5. Post-vérification sur le fichier restauré (connexion dédiée) :
-    // en cas d'échec, la sauvegarde de sécurité est recopiée à sa place.
-    const afterIntegrity = await integrityCheck(urlFor(dbFile));
-    const afterMissing =
-      afterIntegrity === "ok" ? await coreTablesPresent(urlFor(dbFile)) : CORE_TABLES.slice();
-    if (afterIntegrity !== "ok" || afterMissing.length) {
-      await retryOrFalse(() => fs.copyFileSync(previous, dbFile));
-      await db.$connect?.();
-      throw new Error(
-        `Post-vérification échouée (intégrité ${afterIntegrity}` +
-          (afterMissing.length ? ", tables : " + afterMissing.join(", ") : "") +
-          "). Base précédente restaurée automatiquement.",
-      );
-    }
+
+    await writeVerifiedBackup(live, previous);
+    // La copie vers la base ouverte est appliquée par SQLite dans sa propre
+    // transaction. Un échec ne laisse pas un fichier remplacé à moitié.
+    await copyDatabase(incoming, live);
     return {
       ok: true,
-      message:
-        "Restauration réussie. Redirigé vers la connexion (sécurité datée : " +
-        path.basename(previous) +
-        ").",
+      message: `Restauration réussie. Reconnectez-vous. Copie de sécurité : ${path.basename(previous)}.`,
     };
-  } catch (e) {
-    return { ok: false, message: "Restauration impossible : " + (e instanceof Error ? e.message : "erreur inconnue") };
+  } catch (error) {
+    return {
+      ok: false,
+      message:
+        "Restauration impossible : " +
+        (error instanceof Error ? error.message : "erreur inconnue"),
+    };
   } finally {
-    // Nettoyage du fichier entrant si la restauration ne l'a pas renommé.
-    try {
-      if (fs.existsSync(incoming)) fs.rmSync(incoming, { force: true });
-    } catch {
-      // Best effort.
-    }
+    await removeStagingDatabase(incoming);
+    restoring = false;
   }
 }

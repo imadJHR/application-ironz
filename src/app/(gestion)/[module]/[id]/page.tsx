@@ -3,7 +3,14 @@ import { notFound } from "next/navigation";
 import { FileText, ArrowUpRight, ShieldCheck, Clock3 } from "lucide-react";
 import { getDocument } from "@/server/queries";
 import { requireUser, allowed } from "@/server/auth";
-import { modules, moduleFor, type Module } from "@/lib/business";
+import {
+  canCreateDelivery,
+  modules,
+  moduleFor,
+  type Module,
+} from "@/lib/business";
+import { deliveryConflict, remainingDeliveryQuantity } from "@/server/delivery";
+import { db } from "@/server/db";
 import { PageHeader } from "@/components/common";
 import { Status } from "@/components/status";
 import { DocumentActions } from "@/components/document-actions";
@@ -17,25 +24,22 @@ export default async function DocumentDetail({
   const { module, id } = await params,
     [doc, user] = await Promise.all([getDocument(id), requireUser()]);
   if (!doc || moduleFor(doc.kind) !== module) notFound();
+  const canDeliver = canCreateDelivery(doc.kind, doc.status);
+  const conflict = canDeliver ? await deliveryConflict(db, doc) : undefined;
   const company = doc.companySnapshot as Record<string, unknown>,
     client = doc.clientSnapshot as Record<string, unknown>,
     currency = String(company.currency || "MAD"),
     paid = doc.payments.reduce((s, p) => s + Number(p.amount), 0),
     remaining = Number(doc.totalTTC) - paid;
   const remainingLines =
-    doc.kind === "ORDER"
+    canDeliver || doc.kind === "ORDER"
       ? doc.items.map((i) => ({
           id: i.id,
           name: i.name,
           unit: i.unit,
           remaining: Math.max(
             0,
-            Number(i.quantity) -
-              doc.children
-                .filter((d) => d.kind === "DELIVERY")
-                .flatMap((d) => d.items)
-                .filter((l) => l.sourceItemId === i.id)
-                .reduce((s, l) => s + Number(l.quantity), 0),
+            remainingDeliveryQuantity(i, doc.children).toNumber(),
           ),
         }))
       : undefined;
@@ -109,7 +113,13 @@ export default async function DocumentDetail({
                 <thead>
                   <tr>
                     <th>ARTICLE / PRESTATION</th>
-                    {doc.kind === "DELIVERY" && <th>QTÉ COMMANDÉE</th>}
+                    {doc.kind === "DELIVERY" && (
+                      <th>
+                        {doc.source?.kind === "INVOICE"
+                          ? "QTÉ FACTURÉE"
+                          : "QTÉ COMMANDÉE"}
+                      </th>
+                    )}
                     <th>{doc.kind === "DELIVERY" ? "QTÉ LIVRÉE" : "QTÉ"}</th>
                     <th>UNITÉ</th>
                     {doc.kind !== "DELIVERY" && (
@@ -223,7 +233,7 @@ export default async function DocumentDetail({
               </div>
             )}
           </section>
-          {doc.kind === "ORDER" && remainingLines && (
+          {doc.kind === "ORDER" && remainingLines && !conflict && (
             <section className="panel detail-panel" style={{ marginTop: 20 }}>
               <h2 style={{ marginBottom: 20 }}>Suivi des quantités</h2>
               <div className="table-wrap">
@@ -353,6 +363,8 @@ export default async function DocumentDetail({
             status={doc.status}
             role={user.role}
             remainingLines={remainingLines}
+            deliveryConflict={conflict}
+            fromInvoice={doc.source?.kind === "INVOICE"}
             invoice={
               doc.kind === "INVOICE"
                 ? {

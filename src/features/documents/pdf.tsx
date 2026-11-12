@@ -174,7 +174,11 @@ export function CommercialPdf({
       ? [
           { label: "N°", width: "5%" },
           { label: "ARTICLE / DÉSIGNATION", width: "28%" },
-          { label: "QTÉ COMMANDÉE", width: "10%" },
+          {
+            label:
+              doc.sourceKind === "INVOICE" ? "QTÉ FACTURÉE" : "QTÉ COMMANDÉE",
+            width: "10%",
+          },
           { label: "QTÉ LIVRÉE", width: "10%" },
           { label: "UNITÉ", width: "8%" },
           { label: "P.U. HT", width: "17%" },
@@ -183,7 +187,11 @@ export function CommercialPdf({
       : [
           { label: "N°", width: "6%" },
           { label: "ARTICLE / DÉSIGNATION", width: "44%" },
-          { label: "QTÉ COMMANDÉE", width: "18%" },
+          {
+            label:
+              doc.sourceKind === "INVOICE" ? "QTÉ FACTURÉE" : "QTÉ COMMANDÉE",
+            width: "18%",
+          },
           { label: "QTÉ LIVRÉE", width: "20%" },
           { label: "UNITÉ", width: "12%" },
         ]

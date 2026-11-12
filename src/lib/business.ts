@@ -3,6 +3,14 @@ import { z } from "zod";
 Decimal.set({ precision: 32, rounding: Decimal.ROUND_HALF_UP });
 export const kinds = ["QUOTE", "ORDER", "DELIVERY", "INVOICE"] as const;
 export type Kind = (typeof kinds)[number];
+export function canCreateDelivery(kind: Kind, status: string) {
+  return (
+    (kind === "ORDER" &&
+      ["CONFIRMED", "PREPARING", "DELIVERED"].includes(status)) ||
+    (kind === "INVOICE" &&
+      ["SENT", "OVERDUE", "PARTIAL", "PAID"].includes(status))
+  );
+}
 export const modules = {
   devis: {
     kind: "QUOTE",
@@ -73,10 +81,11 @@ export const transitions: Record<Kind, Record<string, string[]>> = {
     CANCELLED: [],
   },
   DELIVERY: {
-    DRAFT: ["PREPARED"],
+    DRAFT: ["PREPARED", "CANCELLED"],
     PREPARED: ["DELIVERED"],
     DELIVERED: ["RECEIVED"],
     RECEIVED: [],
+    CANCELLED: [],
   },
   INVOICE: {
     DRAFT: ["SENT", "CANCELLED"],

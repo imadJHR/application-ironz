@@ -6,8 +6,7 @@ if (process.env.NODE_ENV !== "production") globalDb.prisma = db;
 export const isPreview = () =>
   process.env.NODE_ENV === "development" && process.env.PREVIEW_MODE === "true";
 // Version desktop (.exe, SQLite) : le connecteur SQLite ne prend pas en charge
-// `mode: "insensitive"` (le LIKE y est déjà insensible à la casse en ASCII),
-// et ne gère pas les transactions interactives (mono-poste : exécution directe).
+// `mode: "insensitive"` (le LIKE y est déjà insensible à la casse en ASCII).
 export const isDesktopDb = () => process.env.IRONZ_SQLITE === "1";
 // Le type `object` (sans props connues) évite le contrôle de props
 // excédentaires : le schéma SQLite ne déclare pas `mode`, contrairement à Mongo.
@@ -15,8 +14,10 @@ export const insensitive = (): object =>
   isDesktopDb() ? {} : { mode: "insensitive" };
 export async function atomic<T>(
   work: (tx: Prisma.TransactionClient) => Promise<T>,
+  options?: { sqlite?: boolean },
 ): Promise<T> {
-  if (isDesktopDb()) return work(db as Prisma.TransactionClient);
+  if (isDesktopDb() && !options?.sqlite)
+    return work(db as Prisma.TransactionClient);
   for (let attempt = 0; attempt < 6; attempt++) {
     try {
       return await db.$transaction(work, {
@@ -35,6 +36,11 @@ export async function atomic<T>(
     }
   }
   throw new Error("Veuillez réessayer.");
+}
+export function writeTransaction<T>(
+  work: (tx: Prisma.TransactionClient) => Promise<T>,
+) {
+  return atomic(work, { sqlite: true });
 }
 export const jsonSnapshot = (value: unknown): Prisma.InputJsonValue =>
   JSON.parse(JSON.stringify(value));

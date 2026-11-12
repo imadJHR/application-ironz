@@ -19,6 +19,7 @@ import {
   deleteChain,
 } from "@/server/actions";
 import {
+  canCreateDelivery,
   transitions,
   statusLabels,
   moduleFor,
@@ -37,12 +38,16 @@ export function DocumentActions({
   role,
   invoice,
   remainingLines,
+  deliveryConflict,
+  fromInvoice,
 }: {
   id: string;
   kind: Kind;
   status: string;
   role: AccessRole;
   invoice?: InvoiceOption;
+  deliveryConflict?: string;
+  fromInvoice: boolean;
   remainingLines?: {
     id: string;
     name: string;
@@ -152,21 +157,6 @@ export function DocumentActions({
         {kind === "ORDER" &&
           ["CONFIRMED", "PREPARING", "DELIVERED"].includes(status) && (
             <>
-              {sales && remainingLines?.some((l) => l.remaining > 0) && (
-                <Button
-                  onClick={() => {
-                    setQuantities(
-                      Object.fromEntries(
-                        remainingLines.map((l) => [l.id, l.remaining]),
-                      ),
-                    );
-                    setDelivery(true);
-                  }}
-                >
-                  <Truck size={15} />
-                  Préparer une livraison
-                </Button>
-              )}
               {invoicing && (
                 <ActionButton
                   action={convertDocument.bind(null, id, "INVOICE", undefined)}
@@ -178,7 +168,33 @@ export function DocumentActions({
               )}
             </>
           )}
+        {sales &&
+          canCreateDelivery(kind, status) &&
+          (deliveryConflict ? (
+            <p className="form-description" style={{ margin: 0 }}>
+              {deliveryConflict}
+            </p>
+          ) : (
+            remainingLines?.some((l) => l.remaining > 0) && (
+              <Button
+                onClick={() => {
+                  setQuantities(
+                    Object.fromEntries(
+                      remainingLines.map((l) => [l.id, l.remaining]),
+                    ),
+                  );
+                  setDelivery(true);
+                }}
+              >
+                <Truck size={15} />
+                {kind === "INVOICE"
+                  ? "Créer un bon de livraison"
+                  : "Préparer une livraison"}
+              </Button>
+            )
+          ))}
         {kind === "DELIVERY" &&
+          !fromInvoice &&
           ["DELIVERED", "RECEIVED"].includes(status) &&
           invoicing && (
             <ActionButton

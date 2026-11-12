@@ -20,7 +20,8 @@ export {
 // ne sont jamais modifiées, aucune donnée utilisateur n'est touchée.
 // Le DDL est celui produit par `prisma db push` (template 1.1.2) — les deux
 // sources de vérité restent identiques.
-const RECOVERY_TABLE_DDL = `CREATE TABLE IF NOT EXISTS "RecoveryCode" (
+export const recoverySchemaStatements = [
+  `CREATE TABLE IF NOT EXISTS "RecoveryCode" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "userId" TEXT NOT NULL,
     "codeHash" TEXT NOT NULL,
@@ -29,8 +30,7 @@ const RECOVERY_TABLE_DDL = `CREATE TABLE IF NOT EXISTS "RecoveryCode" (
     "windowStart" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "RecoveryCode_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
-)`;
-const RECOVERY_INDEX_DDL = [
+)`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "RecoveryCode_codeHash_key" ON "RecoveryCode"("codeHash")`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "RecoveryCode_userId_key" ON "RecoveryCode"("userId")`,
 ];
@@ -49,8 +49,7 @@ export function ensureRecoverySchema(): Promise<void> {
   if (!globalSchema.__ironzRecoverySchema) {
     const run = async () => {
       if (process.env.IRONZ_SQLITE !== "1") return;
-      await raw(db).$executeRawUnsafe(RECOVERY_TABLE_DDL);
-      for (const ddl of RECOVERY_INDEX_DDL)
+      for (const ddl of recoverySchemaStatements)
         await raw(db).$executeRawUnsafe(ddl);
     };
     globalSchema.__ironzRecoverySchema = run().catch((e) => {
