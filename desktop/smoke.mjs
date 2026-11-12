@@ -414,6 +414,61 @@ try {
       page.getByText("Connexion Internet indisponible."),
     ).toBeVisible({ timeout: 30000 });
     console.log("OK mises à jour : hors ligne signalé proprement");
+
+    const versionParts = appVersion.split(".").map(Number);
+    versionParts[2]++;
+    const nextVersion = versionParts.join(".");
+    const installer = `IRONZ-Gestion-Setup-${nextVersion}.exe`;
+    const releases = "https://github.com/imadJHR/application-ironz/releases";
+    const url = `${releases}/download/v${nextVersion}/${installer}`;
+    fs.writeFileSync(
+      updateState,
+      JSON.stringify({
+        mode: "release",
+        release: {
+          tag_name: "v" + nextVersion,
+          html_url: releases + "/tag/v" + nextVersion,
+          assets: [{ name: installer, browser_download_url: url }],
+        },
+      }),
+      "utf8",
+    );
+    const check = page.getByRole("button", { name: "Rechercher des mises à jour" });
+    await check.click();
+    await expect(page.getByRole("link", { name: "Télécharger la mise à jour" })).toHaveAttribute("href", url);
+
+    await page.addInitScript(() => {
+      let progress;
+      window.ironzUpdates = {
+        onProgress(listener) {
+          progress = listener;
+          return () => { progress = undefined; };
+        },
+        download(version) {
+          window.downloadedVersion = version;
+          progress?.(47);
+          return new Promise((resolve) => {
+            window.finishDownload = () => resolve({ ok: true });
+          });
+        },
+        async install(version) {
+          window.requestedInstall = version;
+          return { ok: true, started: false };
+        },
+      };
+    });
+    await page.reload();
+    await check.click();
+    await page.getByRole("button", { name: "Mettre à jour", exact: true }).click();
+    await expect(page.getByRole("progressbar")).toHaveAttribute("value", "47");
+    await expect(check).toBeDisabled();
+    await page.evaluate(() => window.finishDownload());
+    await page.getByRole("button", { name: "Installer et redémarrer" }).click();
+    await expect(page.getByRole("button", { name: "Installer et redémarrer" })).toBeEnabled();
+    const nativeVersions = await page.evaluate(() => [window.downloadedVersion, window.requestedInstall]);
+    expect(nativeVersions).toEqual([nextVersion, nextVersion]);
+    await expect(page).toHaveURL(base + "/parametres");
+    console.log("OK mise à jour intégrée : progression, installation et retour après annulation");
   } finally {
     mock.close();
     fs.rmSync(updateState, { force: true });

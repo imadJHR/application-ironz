@@ -1,11 +1,12 @@
 // IRONZ Gestion — processus principal de l'application desktop (.exe).
 // Démarre le serveur Next local (base SQLite du poste) puis ouvre la fenêtre.
 // Aucune connexion internet requise.
-const { app, BrowserWindow, dialog } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain, shell } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
-const { fork } = require("node:child_process");
+const { fork, spawn } = require("node:child_process");
 const http = require("node:http");
+const { createUpdater } = require("./updater.cjs");
 
 const PORT = Number(process.env.IRONZ_PORT || "4380");
 const BASE_URL = "http://127.0.0.1:" + PORT;
@@ -119,14 +120,103 @@ function waitForServer(tries = 120) {
 }
 
 async function createWindow() {
+  const canInstallUpdates = app.isPackaged && process.platform === "win32";
   const win = new BrowserWindow({
     width: 1400,
     height: 900,
     title: "IRONZ Gestion",
     autoHideMenuBar: true,
     backgroundColor: "#111111",
+    webPreferences: {
+      contextIsolation: true,
+      sandbox: true,
+      nodeIntegration: false,
+      ...(canInstallUpdates && { preload: path.join(__dirname, "preload.cjs") }),
+    },
   });
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (isOfficialReleaseUrl(url)) void shell.openExternal(url).catch(() => {});
+    return { action: "deny" };
+  });
+  win.webContents.on("will-navigate", (event, url) => {
+    if (URL.parse(url)?.origin !== BASE_URL) event.preventDefault();
+  });
+  if (canInstallUpdates) registerUpdater(win);
   await win.loadURL(BASE_URL);
+}
+
+function isOfficialReleaseUrl(raw) {
+  const url = URL.parse(raw);
+  return (
+    url?.origin === "https://github.com" &&
+    !url.username &&
+    !url.password &&
+    /^\/imadJHR\/application-ironz\/releases\/(?:latest\/?$|tag\/|download\/)/.test(url.pathname)
+  );
+}
+
+function launchUpdateInstaller(file) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(file, ["--updated", "/S", "--force-run"], {
+      detached: true,
+      stdio: "ignore",
+      windowsHide: true,
+    });
+    child.once("error", reject);
+    child.once("spawn", () => {
+      child.unref();
+      resolve();
+    });
+  });
+}
+
+function registerUpdater(win) {
+  const updater = createUpdater({
+    currentVersion: app.getVersion(),
+    directory: path.join(app.getPath("userData"), "mises-a-jour"),
+    launch: launchUpdateInstaller,
+  });
+  void updater.cleanup();
+
+  function handle(channel, action) {
+    ipcMain.handle(channel, async (event, version) => {
+      const frame = event.senderFrame;
+      if (!frame || event.sender !== win.webContents || frame !== event.sender.mainFrame)
+        return { ok: false, message: "Action de mise à jour non autorisée." };
+      const url = URL.parse(frame.url);
+      if (url?.origin !== BASE_URL || url.pathname !== "/parametres")
+        return { ok: false, message: "Action de mise à jour non autorisée." };
+      try {
+        return await action(version);
+      } catch (error) {
+        return { ok: false, message: error instanceof Error ? error.message : "Échec de la mise à jour." };
+      }
+    });
+    win.once("closed", () => ipcMain.removeHandler(channel));
+  }
+
+  handle("ironz:update:download", async (version) => {
+    await updater.download(version, (percent) => {
+      if (!win.isDestroyed()) win.webContents.send("ironz:update:progress", percent);
+    });
+    return { ok: true };
+  });
+  handle("ironz:update:install", async (version) => {
+    const started = await updater.install(version, async () => {
+      const { response } = await dialog.showMessageBox(win, {
+        type: "question",
+        title: "Mise à jour IRONZ Gestion",
+        message: `Installer IRONZ Gestion ${version} et redémarrer ?`,
+        detail: "Enregistrez votre travail. IRONZ Gestion se fermera pendant l’installation.",
+        buttons: ["Annuler", "Installer et redémarrer"],
+        defaultId: 0,
+        cancelId: 0,
+      });
+      return response === 1;
+    });
+    if (started) setImmediate(() => app.quit());
+    return { ok: true, started };
+  });
 }
 
 app.whenReady().then(async () => {

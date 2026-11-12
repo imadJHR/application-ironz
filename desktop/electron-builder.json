@@ -6,7 +6,7 @@
     "output": "desktop/dist",
     "buildResources": "desktop"
   },
-  "files": ["main.cjs", "package.json", "standalone/**"],
+  "files": ["main.cjs", "preload.cjs", "updater.cjs", "package.json", "standalone/**"],
   "asar": true,
   "asarUnpack": ["standalone/node_modules/@img/**"],
   "compression": "normal",

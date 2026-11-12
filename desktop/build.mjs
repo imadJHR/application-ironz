@@ -110,10 +110,9 @@ copyDir(
   path.join(pack, "standalone", ".next", "static"),
 );
 copyDir(path.join(root, "public"), path.join(pack, "standalone", "public"));
-fs.copyFileSync(
-  path.join(root, "desktop", "main.cjs"),
-  path.join(pack, "main.cjs"),
-);
+for (const file of ["main.cjs", "preload.cjs", "updater.cjs"]) {
+  fs.copyFileSync(path.join(root, "desktop", file), path.join(pack, file));
+}
 const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
 // Le serveur standalone embarque ses node_modules ; on déclare un module
 // factice local pour que la collecte des dépendances s'arrête au pack

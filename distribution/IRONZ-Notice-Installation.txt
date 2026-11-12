@@ -1,11 +1,11 @@
   ┌─────────────────────────────────────────────────────────────┐
-  │  IRONZ GESTION — Version 0.1.1 (Windows, monoposte)         │
+  │  IRONZ GESTION — Version 0.1.2 (Windows, monoposte)         │
   │  Notice d'installation et de sauvegarde des données         │
   └─────────────────────────────────────────────────────────────┘
 
 1. INSTALLATION
 ---------------
-• Double-cliquez sur : IRONZ-Gestion-Setup-0.1.1.exe
+• Double-cliquez sur : IRONZ-Gestion-Setup-0.1.2.exe
 • Aucun droit administrateur n'est nécessaire (installation par
   utilisateur).
 • Choisissez l'emplacement d'installation (par défaut :
@@ -116,19 +116,18 @@
 
 8. MISES À JOUR
 ---------------
+• Depuis une version antérieure à la 0.1.2, fermez IRONZ Gestion
+  et lancez une fois l'installateur 0.1.2. Une installation
+  par-dessus la version actuelle conserve vos données.
 • Dans l'application : "Paramètres" ▸ "Mises à jour" :
     - la version installée est affichée ;
     - "Rechercher des mises à jour" interroge le dépôt GitHub officiel
-      (recherche manuelle, aucune donnée de votre poste n'est
-      transmise) ;
-    - si une nouvelle version existe : numéro, date, nouveautés et
-      bouton "Télécharger la mise à jour" (ouvre le navigateur sur le
-      lien officiel de l'installateur Windows).
-• L'application N'INSTALLE JAMAIS une mise à jour elle-même : une fois
-  l'installateur téléchargé depuis GitHub, exécutez-le vous-même
-  double-clic. Installer par-dessus la version actuelle conserve vos
-  données.
+      (recherche manuelle, vos données restent sur le poste) ;
+    - "Mettre à jour" télécharge l'installateur officiel et vérifie
+      sa somme SHA-256 ;
+    - "Installer et redémarrer" demande votre confirmation et lance
+      l'installation. Enregistrez votre travail avant de confirmer.
 • Sans Internet : "Connexion Internet indisponible" — toutes les
   fonctions continuent de fonctionner hors ligne.
 
-── IRONZ — Notice de livraison v0.1.1 ──
+── IRONZ — Notice de livraison v0.1.2 ──

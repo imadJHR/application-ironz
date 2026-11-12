@@ -1,6 +1,6 @@
 # IRONZ Gestion
 
-[⬇️ Télécharger IRONZ Gestion 0.1.1 pour Windows](https://github.com/imadJHR/application-ironz/releases/download/v0.1.1/IRONZ-Gestion-Setup-0.1.1.exe)
+[⬇️ Télécharger IRONZ Gestion 0.1.2 pour Windows](https://github.com/imadJHR/application-ironz/releases/download/v0.1.2/IRONZ-Gestion-Setup-0.1.2.exe)
 
 - Windows 64 bits
 - Installation simple avec NSIS
@@ -15,9 +15,9 @@ serveur externe ne sont nécessaires.
 
 ## Télécharger
 
-> - **Fichier** : `IRONZ-Gestion-Setup-0.1.1.exe` (Windows 64 bits)
-> - [Sommes SHA-256](https://github.com/imadJHR/application-ironz/releases/download/v0.1.1/SHA256SUMS.txt)
-> - [Notice d'installation complète](https://github.com/imadJHR/application-ironz/releases/download/v0.1.1/IRONZ-Notice-Installation.txt)
+> - **Fichier** : `IRONZ-Gestion-Setup-0.1.2.exe` (Windows 64 bits)
+> - [Sommes SHA-256](https://github.com/imadJHR/application-ironz/releases/download/v0.1.2/SHA256SUMS.txt)
+> - [Notice d'installation complète](https://github.com/imadJHR/application-ironz/releases/download/v0.1.2/IRONZ-Notice-Installation.txt)
 
 L'installateur n'est **pas signé numériquement** : Windows SmartScreen peut
 afficher un avertissement au premier lancement. Cliquez sur
@@ -25,8 +25,8 @@ afficher un avertissement au premier lancement. Cliquez sur
 
 ## Installation Windows
 
-1. Téléchargez le fichier `IRONZ-Gestion-Setup-0.1.1.exe` (bouton ci-dessus,
-   ou via la release v0.1.1).
+1. Téléchargez le fichier `IRONZ-Gestion-Setup-0.1.2.exe` (bouton ci-dessus,
+   ou via la release v0.1.2).
 2. Lancez l'installateur.
 3. Suivez les étapes d'installation de l'assistant NSIS.
 4. Ouvrez **IRONZ Gestion** depuis le menu Démarrer ou le raccourci du bureau.
@@ -41,6 +41,15 @@ afficher un avertissement au premier lancement. Cliquez sur
 Aucun identifiant n'est fourni par défaut : vous définissez le vôtre.
 Installer une mise à jour par-dessus une version existante conserve vos
 données et vos comptes.
+
+## Mettre à jour une installation existante
+
+- **Depuis la 0.1.1 ou une version antérieure** — Fermez IRONZ Gestion et
+  lancez une fois l'installateur 0.1.2 par-dessus la version installée.
+- **À partir de la 0.1.2** — Dans **Paramètres → Mises à jour**, cliquez sur
+  **Rechercher des mises à jour**, puis sur **Mettre à jour** lorsqu'une
+  nouvelle version est disponible. Après le téléchargement, cliquez sur
+  **Installer et redémarrer**, puis confirmez.
 
 ## Fonctionnalités
 
@@ -57,7 +66,7 @@ données et vos comptes.
 | Recherche | Recherche globale et filtres dans tous les modules |
 | Conflit de comptes hérités | Comptes d'essais antérieurs signalés dans « Paramètres » : fusion décidée par l'administrateur (mot de passe requis), aucune suppression automatique |
 | Sauvegarde / Restauration | Sauvegarde et restauration de vos données en deux clics (menu Paramètres) |
-| Mises à jour | Vérification volontaire des nouvelles versions (Paramètres) sur le dépôt GitHub officiel : numéro, nouveautés, lien direct de l'installateur — jamais d'installation automatique |
+| Mises à jour | Vérification volontaire dans les paramètres. À partir de la version Windows 0.1.2, téléchargement et installation dans IRONZ après confirmation. |
 
 ## Sécurité et données
 
@@ -84,8 +93,8 @@ données et vos comptes.
 
 ## Liens
 
-- [GitHub Release v0.1.1](https://github.com/imadJHR/application-ironz/releases/tag/v0.1.1)
-- [Notice d'installation](https://github.com/imadJHR/application-ironz/releases/download/v0.1.1/IRONZ-Notice-Installation.txt)
+- [GitHub Release v0.1.2](https://github.com/imadJHR/application-ironz/releases/tag/v0.1.2)
+- [Notice d'installation](https://github.com/imadJHR/application-ironz/releases/download/v0.1.2/IRONZ-Notice-Installation.txt)
 - [CHANGELOG](distribution/CHANGELOG.md)
 
 ## Pour les développeurs

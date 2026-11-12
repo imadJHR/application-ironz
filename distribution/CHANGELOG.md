@@ -1,5 +1,9 @@
 # CHANGELOG — IRONZ Gestion (desktop)
 
+## 0.1.2 — Mise à jour intégrée
+
+- Dans l’application Windows, « Paramètres → Mises à jour » télécharge et vérifie l’installateur officiel. « Installer et redémarrer » lance l’installation après confirmation.
+
 ## 0.1.1 — Livraison depuis les factures
 
 - Création d’un bon de livraison depuis une facture émise, y compris après paiement. Les livraisons partielles sont liées à la facture et limitées aux quantités restantes.

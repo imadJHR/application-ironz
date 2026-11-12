@@ -3,9 +3,8 @@ import pkg from "../../package.json";
 
 // Vérification des mises à jour (section Paramètres ▸ Mises à jour).
 // Principe : un simple GET public vers l'API GitHub du dépôt officiel,
-// sans jamais transmettre de données locales. L'application n'exécute
-// jamais un installateur : le bouton télécharge s'ouvre dans le
-// navigateur, l'installation reste manuelle.
+// sans transmettre de données locales. Le processus Electron vérifie
+// séparément l’installateur officiel avant une installation intégrée.
 
 export const CURRENT_VERSION: string = pkg.version;
 // Dépôt officiel : seule source acceptée pour les liens proposés.
